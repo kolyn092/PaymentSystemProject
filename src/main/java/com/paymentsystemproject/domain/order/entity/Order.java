@@ -19,30 +19,30 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-	name = "orders",
-	uniqueConstraints = @UniqueConstraint(
-		name = "uk_orders_order_number",
-		columnNames = "order_number"
-	)
+    name = "orders",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_orders_order_number",
+        columnNames = "order_number"
+    )
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Orders extends BaseTimeEntity {
+public class Order extends BaseTimeEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "member_id", nullable = false)
-	private Member member;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
-	@Column(name = "order_number", length = 50, nullable = false)
-	private String orderNumber;
+    @Column(name = "order_number", length = 50, nullable = false)
+    private String orderNumber;
 
-	@Column(name = "total_amount", nullable = false)
-	private Integer totalAmount;
+    @Column(name = "total_amount", nullable = false)
+    private Integer totalAmount;
 
-	@Column(length = 20, nullable = false)
-	private String status;
+    @Column(length = 20, nullable = false)
+    private String status;
 }
