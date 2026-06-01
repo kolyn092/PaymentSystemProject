@@ -11,6 +11,8 @@ import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 import com.paymentsystemproject.domain.cartitem.repository.CartItemRepository;
+import com.paymentsystemproject.domain.product.entity.Product;
+import com.paymentsystemproject.domain.product.repository.ProductRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -21,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class CartService {
     private final CartItemRepository cartItemRepository;
+    private final ProductRepository productRepository;
 
     @Transactional
     public Long addItem(AddCartRequestDto requestDto) {
@@ -32,10 +35,12 @@ public class CartService {
             addItem.addQuantity(requestDto.quantity());
             return addItem.getId();
             //else 문 추후 구현 예정
-            // } else {
+        } else {
             //
             //     Member member = memberRepository.findById(memberId);
-            //     Product product = productRepository.findById(productId);
+            Product product = productRepository.findById(requestDto.productId()).orElseThrow(
+                () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            );
 
             //     CartItem cartItem = CartItem.from(member, product, requestDto.getQuantity);
             //

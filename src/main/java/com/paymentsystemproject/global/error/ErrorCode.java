@@ -21,10 +21,10 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_005", "회원을 찾을 수 없습니다."),
 
     //Product
-    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_001", "상품을 찾을 수 없습니다."),
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_051", "상품을 찾을 수 없습니다."),
 
     //CartItem
-    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_002", "장바구니 항목을 찾을 수 없습니다.");
+    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_101", "장바구니 항목을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
