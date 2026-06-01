@@ -49,8 +49,7 @@ public class OrderService {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             cartItems = cartItemRepository.findByMemberId(memberId);
         } else {
-            // cartItemIds 선택 조회 메서드명 확인 후 수정
-            cartItems = cartItemRepository.findByIdAndMemberId(cartItemIds, memberId);
+            cartItems = cartItemRepository.findByMemberIdAndIdIn(memberId, cartItemIds);
             if (cartItems.size() != cartItemIds.size()) {
                 throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
             }
@@ -77,7 +76,7 @@ public class OrderService {
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         // cartItemIds 선택 조회 메서드명 확인 후 수정
-        List<CartItem> cartItems = cartItemRepository.findByIdAndMemberId(requestDto.cartItemIds(), memberId);
+        List<CartItem> cartItems = cartItemRepository.findByMemberIdAndIdIn(memberId, requestDto.cartItemIds());
         if (cartItems.size() != requestDto.cartItemIds().size()) {
             throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
         }
