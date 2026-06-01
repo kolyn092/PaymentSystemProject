@@ -22,7 +22,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
-    private final CartItemRepository cartItemRespository;
+    private final CartItemRepository cartItemRepository;
 
     public GetOrderPreviewResponseDto getOrderPreview(Long memberId, List<Long> cartItemIds) {
         Member member = memberRepository.findById(memberId)
@@ -30,10 +30,10 @@ public class OrderService {
 
         List<CartItem> cartItems;
         if (cartItemIds == null || cartItemIds.isEmpty()) {
-            cartItems = cartItemRespository.findByMemberId(memberId);
+            cartItems = cartItemRepository.findByMemberId(memberId);
         } else {
-            // cartItemIds 선태 조회 메서드명 확인 후 수정
-            cartItems = cartItemRespository.findByIdAndMemberId(cartItemIds, memberId);
+            // cartItemIds 선택 조회 메서드명 확인 후 수정
+            cartItems = cartItemRepository.findByIdAndMemberId(cartItemIds, memberId);
             if (cartItems.size() != cartItemIds.size()) {
                 throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
             }
