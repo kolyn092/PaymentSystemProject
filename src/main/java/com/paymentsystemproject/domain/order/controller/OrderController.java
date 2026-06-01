@@ -2,6 +2,7 @@ package com.paymentsystemproject.domain.order.controller;
 
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
+import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.service.OrderService;
 import com.paymentsystemproject.global.response.ApiResponse;
@@ -40,5 +42,14 @@ public class OrderController {
         @RequestBody CreateOrderRequestDto requestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.ok(orderService.createOrder(memberId, requestDto)));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<GetOrderListResponseDto>>> getOrderList(
+        @RequestParam Long memberId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(orderService.getOrderList(memberId, page, size)));
     }
 }

@@ -3,6 +3,10 @@ package com.paymentsystemproject.domain.order.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +16,7 @@ import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.repository.MemberRepository;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
+import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
@@ -90,5 +95,16 @@ public class OrderService {
         // PortOne 결제창 호출 로직 추가 필요
 
         return CreateOrderResponseDto.from(order, payment);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<GetOrderListResponseDto> getOrderList(Long memberId, int page, int size) {
+        Member member = memberRepository.findById(memberId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return orderRepository.findByMember(member, pageable)
+            .map(GetOrderListResponseDto::from);
     }
 }
