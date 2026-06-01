@@ -9,7 +9,8 @@ public record GetOrderPreviewResponseDto(
 ) {
     public static GetOrderPreviewResponseDto of(
         List<GetOrderPreviewItemDto> items,
-        Integer totalAmount, Integer pointBalance) {
+        Integer totalAmount,
+        Integer pointBalance) {
         return new GetOrderPreviewResponseDto(
             items,
             totalAmount,
