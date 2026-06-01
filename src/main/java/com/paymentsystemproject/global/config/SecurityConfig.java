@@ -21,8 +21,8 @@ import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 public class SecurityConfig {
 
 	private static final String[] PUBLIC_ENDPOINTS = {
-		"/signup",
-		"/login"
+		"/api/signup",
+		"/api/login"
 	};
 
 	private final JwtTokenProvider jwtTokenProvider;
