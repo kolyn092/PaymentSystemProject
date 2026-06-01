@@ -16,12 +16,14 @@ import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.repository.MemberRepository;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
+import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
+import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.domain.payment.service.PaymentService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -35,6 +37,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
     private final CartItemRepository cartItemRepository;
+    private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
@@ -106,5 +109,20 @@ public class OrderService {
 
         return orderRepository.findByMember(member, pageable)
             .map(GetOrderListResponseDto::from);
+    }
+
+    @Transactional(readOnly = true)
+    public GetOrderDetailResponseDto getOrderDetail(Long memberId, Long orderId) {
+        Order order = orderRepository.findByWithOrderItems(orderId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (!order.getMember().getId().equals(memberId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        Payment payment = paymentRepository.findByOrder(order)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        return GetOrderDetailResponseDto.from(order, payment);
     }
 }
