@@ -2,13 +2,13 @@ package com.paymentsystemproject.domain.auth.dto;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 
-public record SignupResponse(
+public record SignupResponseDto(
 	Long memberId,
 	String email,
 	String name
 ) {
-	public static SignupResponse from(Member member) {
-		return new SignupResponse(
+	public static SignupResponseDto from(Member member) {
+		return new SignupResponseDto(
 			member.getId(),
 			member.getEmail(),
 			member.getName()
