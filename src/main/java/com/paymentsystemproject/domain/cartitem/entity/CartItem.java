@@ -2,6 +2,8 @@ package com.paymentsystemproject.domain.cartitem.entity;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.product.entity.Product;
+import com.paymentsystemproject.global.error.BusinessException;
+import com.paymentsystemproject.global.error.ErrorCode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,14 +66,20 @@ public class CartItem {
 
     public void addQuantity(int quantity) {
         if (quantity < 1) {
-            throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+        if (this.quantity + quantity > this.product.getStock()) {
+            throw new BusinessException(ErrorCode.EXCEED_STOCK);
         }
         this.quantity += quantity;
     }
 
     public void changeQuantity(int quantity) {
         if (quantity < 1) {
-            throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+        if (quantity > this.product.getStock()) {
+            throw new BusinessException(ErrorCode.EXCEED_STOCK);
         }
         this.quantity = quantity;
     }

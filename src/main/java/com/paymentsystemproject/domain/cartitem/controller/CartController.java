@@ -20,9 +20,9 @@ import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.service.CartService;
+import com.paymentsystemproject.global.security.CustomUserDetails;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -43,56 +43,52 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GetCartItemResponseDto>> getItems(@AuthenticationPrincipal Long memberId) {
-        return ResponseEntity.status(HttpStatus.OK).body(cartService.getCartItems(memberId));
+    public ResponseEntity<List<GetCartItemResponseDto>> getItems(
+        @AuthenticationPrincipal CustomUserDetails userDetails) { // 👈 변경!
+
+        // userDetails에서 getMemberId()로 꺼내서 넘겨줍니다.
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(cartService.getCartItems(userDetails.getMemberId()));
     }
 
     @GetMapping("/selected")
     public ResponseEntity<List<GetCartItemResponseDto>> getSelectedItems(
-        @AuthenticationPrincipal Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
         @RequestParam(name = "ids", required = false) List<Long> cartItemIds) {
 
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             return ResponseEntity.status(HttpStatus.OK).body(List.of());
         }
 
-        List<GetCartItemResponseDto> responseDtoList = cartService.getSelectedItems(memberId, cartItemIds);
+        List<GetCartItemResponseDto> responseDtoList =
+            cartService.getSelectedItems(userDetails.getMemberId(), cartItemIds);
         return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
     }
 
     @PatchMapping
-    public ResponseEntity<Void> updateQuantity(@AuthenticationPrincipal Long memberId,
+    public ResponseEntity<Void> updateQuantity(
+        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
         @Valid @RequestBody UpdateCartRequestDto request) {
-        cartService.updateQuantity(memberId, request);
+
+        cartService.updateQuantity(userDetails.getMemberId(), request);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @DeleteMapping("/{cartItemId}")
-    public ResponseEntity<Void> removeItem(@AuthenticationPrincipal Long memberId, @PathVariable Long cartItemId) {
-        cartService.removeItem(memberId, cartItemId);
+    public ResponseEntity<Void> removeItem(
+        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
+        @PathVariable Long cartItemId) {
+
+        cartService.removeItem(userDetails.getMemberId(), cartItemId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> removeCart(@AuthenticationPrincipal Long memberId) {
-        cartService.removeCart(memberId);
+    public ResponseEntity<Void> removeCart(
+        @AuthenticationPrincipal CustomUserDetails userDetails) { // 👈 변경!
+
+        cartService.removeCart(userDetails.getMemberId());
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @GetMapping("/test-token")
-    public ResponseEntity<String> getTestToken() {
-        // 1번 멤버, 테스트 이메일로 유효한 토큰을 강제 발급합니다.
-        String token = jwtTokenProvider.createToken(1L, "test@test.com");
-        return ResponseEntity.ok(token);
-    }
-
-    @PostConstruct
-    public void printTestToken() {
-        // 서버가 켜질 때 1번 멤버의 토큰을 만들어서 인텔리제이 콘솔창에 강제로 출력합니다.
-        String token = jwtTokenProvider.createToken(1L, "test@test.com");
-        System.out.println("==================================================");
-        System.out.println("🔑 테스트용 임시 토큰 (복사해서 Postman에 쓰세요):");
-        System.out.println(token);
-        System.out.println("==================================================");
-    }
 }
