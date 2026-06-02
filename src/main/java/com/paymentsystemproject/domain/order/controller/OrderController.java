@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
@@ -61,5 +62,13 @@ public class OrderController {
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(orderService.getOrderDetail(memberId, orderId)));
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<CancelOrderResponseDto>> cancelOrder(
+        @RequestParam Long memberId,
+        @PathVariable Long orderId) {
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+            .body(ApiResponse.ok(orderService.cancelOrder(memberId, orderId)));
     }
 }

@@ -60,4 +60,9 @@ public class Order extends BaseTimeEntity {
         this.totalAmount = totalAmount;
         this.status = OrderStatus.PENDING_PAYMENT;
     }
+
+    // 주문취소 시 상태변경 메서드
+    public void cancel() {
+        this.status = OrderStatus.CANCELLED;
+    }
 }

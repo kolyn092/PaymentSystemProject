@@ -14,6 +14,7 @@ import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 import com.paymentsystemproject.domain.cartitem.repository.CartItemRepository;
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.repository.MemberRepository;
+import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
@@ -21,6 +22,7 @@ import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
+import com.paymentsystemproject.domain.order.entity.OrderStatus;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
@@ -75,7 +77,6 @@ public class OrderService {
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
-        // cartItemIds 선택 조회 메서드명 확인 후 수정
         List<CartItem> cartItems = cartItemRepository.findByMemberIdAndIdIn(memberId, requestDto.cartItemIds());
         if (cartItems.size() != requestDto.cartItemIds().size()) {
             throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
@@ -119,9 +120,34 @@ public class OrderService {
             throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
+        // 메서드명 확인후 수정
         Payment payment = paymentRepository.findByOrder(order)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
         return GetOrderDetailResponseDto.from(order, payment);
+    }
+
+    @Transactional
+    public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (!order.getMember().getId().equals(memberId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        // findByOrder 메서드명 확인 후 수정
+        Payment payment = paymentRepository.findByOrder(order)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        order.cancel();
+
+        // 결제 상태 변경 메서드 확인 후 수정
+
+        return CancelOrderResponseDto.from(order);
     }
 }
