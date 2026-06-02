@@ -54,7 +54,7 @@ public class CartService {
     @Transactional(readOnly = true)
     public GetCartResponseDto getCartItems(Long memberId) {
         List<GetCartItemResponseDto> items = cartItemRepository.findByMemberId(memberId).stream()
-            .map(this::toResponse)
+            .map(GetCartItemResponseDto::from)
             .toList();
 
         int totalPrice = items.stream().mapToInt(item -> item.price() * item.quantity()).sum();
@@ -75,7 +75,7 @@ public class CartService {
         }
 
         List<GetCartItemResponseDto> cartItems = items.stream()
-            .map(this::toResponse)
+            .map(GetCartItemResponseDto::from)
             .toList();
 
         int totalPrice = cartItems.stream().mapToInt(item -> item.price() * item.quantity()).sum();
@@ -105,10 +105,6 @@ public class CartService {
         if (item == 0) {
             throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
         }
-    }
-
-    private GetCartItemResponseDto toResponse(CartItem item) {
-        return GetCartItemResponseDto.from(item);
     }
 
 }
