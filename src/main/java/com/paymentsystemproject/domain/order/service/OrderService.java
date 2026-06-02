@@ -22,9 +22,12 @@ import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
+import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.entity.OrderStatus;
+import com.paymentsystemproject.domain.order.repository.OrderItemRepository;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
+import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.domain.payment.service.PaymentService;
 import com.paymentsystemproject.global.error.BusinessException;
@@ -37,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final MemberRepository memberRepository;
     private final CartItemRepository cartItemRepository;
     private final PaymentRepository paymentRepository;
@@ -91,11 +95,23 @@ public class OrderService {
         Order order = new Order(member, orderNumber, totalAmount);
         orderRepository.save(order);
 
-        // 재고 선차감 로직 추가 필요 (Product 재고 차감)
+        for (CartItem cartItem : cartItems) {
+            OrderItem orderItem = new OrderItem(
+                order,
+                cartItem.getProduct(),
+                cartItem.getProduct().getName(),
+                cartItem.getProduct().getPrice(),
+                cartItem.getQuantity()
+            );
+            orderItemRepository.save(orderItem);
+        }
+
+        // 주문 시 재고 선차감
+        for (CartItem cartItem : cartItems) {
+            cartItem.getProduct().decreaseStock(cartItem.getQuantity());
+        }
 
         Payment payment = paymentService.createPayment(order, requestDto.usePoint(), member.getPointBalance());
-
-        // PortOne 결제창 호출 로직 추가 필요
 
         return CreateOrderResponseDto.from(order, payment);
     }
@@ -120,7 +136,6 @@ public class OrderService {
             throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
         }
 
-        // 메서드명 확인후 수정
         Payment payment = paymentRepository.findByOrder(order)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -140,13 +155,15 @@ public class OrderService {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
 
-        // findByOrder 메서드명 확인 후 수정
         Payment payment = paymentRepository.findByOrder(order)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        order.cancel();
+        for (OrderItem orderItem : order.getOrderItems()) {
+            orderItem.getProduct().increaseStock(orderItem.getQuantity());
+        }
+        payment.changeStatus(PaymentStatus.CANCELED);
 
-        // 결제 상태 변경 메서드 확인 후 수정
+        order.cancel();
 
         return CancelOrderResponseDto.from(order);
     }
