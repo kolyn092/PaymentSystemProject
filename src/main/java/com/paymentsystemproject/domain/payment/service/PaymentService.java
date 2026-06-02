@@ -3,6 +3,7 @@ package com.paymentsystemproject.domain.payment.service;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.payment.entity.Payment;
@@ -10,19 +11,18 @@ import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
 @Service
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
 
-    public PaymentService(PaymentRepository paymentRepository) {
-        this.paymentRepository = paymentRepository;
-    }
-
-    // order 검증이 완료되었다는 가정하에 작성
+    // order 검증이 완료되었다는 가정 하에 작성
     // usedPoint = 사용자가 사용할 포인트 / availablePoint = 사용자가 보유하고 있는 포인트
+    @Transactional
     public Payment createPayment(Order order, Integer usedPoint, Integer availablePoint) {
-        // 포인트 검증
         // NOTE - 포인트 검증을 밖에서 하셨으면 굳이 사용하지 않으셔도 됩니다.
         validPoint(availablePoint, order.getTotalAmount(), usedPoint);
 
