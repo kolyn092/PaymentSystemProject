@@ -7,10 +7,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.paymentsystemproject.domain.auth.dto.LoginRequest;
-import com.paymentsystemproject.domain.auth.dto.LoginResponse;
-import com.paymentsystemproject.domain.auth.dto.SignupRequest;
-import com.paymentsystemproject.domain.auth.dto.SignupResponse;
+import com.paymentsystemproject.domain.auth.dto.LoginRequestDto;
+import com.paymentsystemproject.domain.auth.dto.LoginResponseDto;
+import com.paymentsystemproject.domain.auth.dto.SignupRequestDto;
+import com.paymentsystemproject.domain.auth.dto.SignupResponseDto;
 import com.paymentsystemproject.domain.auth.service.AuthService;
 import com.paymentsystemproject.global.response.ApiResponse;
 
@@ -25,12 +25,12 @@ public class AuthController {
 	private final AuthService authService;
 
 	@PostMapping("/signup")
-	public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest request) {
+	public ResponseEntity<ApiResponse<SignupResponseDto>> signup(@Valid @RequestBody SignupRequestDto request) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(authService.signup(request)));
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+	public ResponseEntity<ApiResponse<LoginResponseDto>> login(@Valid @RequestBody LoginRequestDto request) {
 		return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(authService.login(request)));
 	}
 }
