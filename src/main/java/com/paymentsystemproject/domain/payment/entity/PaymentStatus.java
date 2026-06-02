@@ -8,6 +8,7 @@ public enum PaymentStatus {
     PENDING,
     COMPLETED,
     FAILED,
+    // 결제 취소(사용자 취소 || 시스템 취소)
     CANCELED,
     PARTIAL_REFUNDED,
     REFUNDED;
@@ -15,7 +16,8 @@ public enum PaymentStatus {
     public boolean canTransitionTo(PaymentStatus nextStatus) {
         return switch (this) {
             case PENDING -> nextStatus == COMPLETED ||
-                nextStatus == FAILED;
+                nextStatus == FAILED ||
+                nextStatus == CANCELED;
 
             case COMPLETED -> nextStatus == CANCELED ||
                 nextStatus == PARTIAL_REFUNDED ||
