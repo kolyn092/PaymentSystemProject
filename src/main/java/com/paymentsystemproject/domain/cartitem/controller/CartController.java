@@ -17,12 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentsystemproject.domain.cartitem.dto.AddCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
-import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
+import com.paymentsystemproject.domain.cartitem.dto.GetCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.service.CartService;
 import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
-import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,37 +32,31 @@ import lombok.RequiredArgsConstructor;
 public class CartController {
 
     private final CartService cartService;
-    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<AddCartResponseDto>> addItem(@Valid @RequestBody AddCartRequestDto request) {
-        Long savedItem = cartService.addItem(request);
+    public ResponseEntity<ApiResponse<AddCartResponseDto>> addItem(
+        @AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody AddCartRequestDto request) {
+        Long savedItem = cartService.addItem(userDetails.getMemberId(), request);
 
         AddCartResponseDto responseDto = new AddCartResponseDto(savedItem);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(responseDto));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<GetCartItemResponseDto>>> getItems(
+    public ResponseEntity<ApiResponse<GetCartResponseDto>> getItems(
         @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        // userDetails에서 getMemberId()로 꺼내서 넘겨줍니다.
         return ResponseEntity.status(HttpStatus.OK)
             .body(ApiResponse.ok(cartService.getCartItems(userDetails.getMemberId())));
     }
 
     @GetMapping("/selected")
-    public ResponseEntity<ApiResponse<List<GetCartItemResponseDto>>> getSelectedItems(
+    public ResponseEntity<ApiResponse<GetCartResponseDto>> getSelectedItems(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(name = "ids", required = false) List<Long> cartItemIds) {
 
-        if (cartItemIds == null || cartItemIds.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(List.of()));
-        }
-
-        List<GetCartItemResponseDto> responseDtoList =
-            cartService.getSelectedItems(userDetails.getMemberId(), cartItemIds);
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(responseDtoList));
+        return ResponseEntity.status(HttpStatus.OK)
+            .body(ApiResponse.ok(cartService.getSelectedItems(userDetails.getMemberId(), cartItemIds)));
     }
 
     @PatchMapping

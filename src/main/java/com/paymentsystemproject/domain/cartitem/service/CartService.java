@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.cartitem.dto.AddCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
+import com.paymentsystemproject.domain.cartitem.dto.GetCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 import com.paymentsystemproject.domain.cartitem.repository.CartItemRepository;
@@ -30,16 +31,15 @@ public class CartService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public Long addItem(AddCartRequestDto requestDto) {
-        Optional<CartItem> existing = cartItemRepository.findByMember_idAndProduct_Id(requestDto.memberId(),
-            requestDto.productId());
+    public Long addItem(Long memberId, AddCartRequestDto requestDto) {
+        Optional<CartItem> existing = cartItemRepository.findByMember_idAndProduct_Id(memberId, requestDto.productId());
 
         if (existing.isPresent()) {
             CartItem addItem = existing.get();
             addItem.addQuantity(requestDto.quantity());
             return addItem.getId();
         } else {
-            Member member = memberRepository.findById(requestDto.memberId()).orElseThrow(
+            Member member = memberRepository.findById(memberId).orElseThrow(
                 () -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND)
             );
             Product product = productRepository.findById(requestDto.productId()).orElseThrow(
@@ -52,16 +52,20 @@ public class CartService {
     }
 
     @Transactional(readOnly = true)
-    public List<GetCartItemResponseDto> getCartItems(Long memberId) {
-        return cartItemRepository.findByMemberId(memberId).stream()
+    public GetCartResponseDto getCartItems(Long memberId) {
+        List<GetCartItemResponseDto> items = cartItemRepository.findByMemberId(memberId).stream()
             .map(this::toResponse)
             .toList();
+
+        int totalPrice = items.stream().mapToInt(item -> item.price() * item.quantity()).sum();
+
+        return new GetCartResponseDto(items, totalPrice);
     }
 
     @Transactional(readOnly = true)
-    public List<GetCartItemResponseDto> getSelectedItems(Long memberId, List<Long> cartItemIds) {
+    public GetCartResponseDto getSelectedItems(Long memberId, List<Long> cartItemIds) {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
-            return List.of();
+            return new GetCartResponseDto(List.of(), 0);
         }
 
         List<CartItem> items = cartItemRepository.findByMemberIdAndIdIn(memberId, cartItemIds);
@@ -70,9 +74,13 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
         }
 
-        return items.stream()
+        List<GetCartItemResponseDto> cartItems = items.stream()
             .map(this::toResponse)
             .toList();
+
+        int totalPrice = cartItems.stream().mapToInt(item -> item.price() * item.quantity()).sum();
+
+        return new GetCartResponseDto(cartItems, totalPrice);
     }
 
     @Transactional
@@ -85,7 +93,10 @@ public class CartService {
 
     @Transactional
     public void removeItem(Long memberId, Long itemId) {
-        cartItemRepository.deleteByIdAndMember_Id(itemId, memberId);
+        int item = cartItemRepository.deleteByIdAndMember_Id(itemId, memberId);
+        if (item == 0) {
+            throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
+        }
     }
 
     @Transactional

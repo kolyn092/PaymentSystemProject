@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentsystemproject.domain.product.dto.GetOneProductResponseDto;
@@ -26,8 +27,16 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<GetProductPageableResponseDto>> list(
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) Integer minPrice,
+        @RequestParam(required = false) Integer maxPrice,
+        @RequestParam(required = false) String status,
         @PageableDefault(page = 0, size = 10, sort = "price", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(productService.findAll(pageable)));
+
+        GetProductPageableResponseDto responseDto =
+            productService.findAll(category, minPrice, maxPrice, status, pageable);
+
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(responseDto));
     }
 
     @GetMapping("/{id}")
