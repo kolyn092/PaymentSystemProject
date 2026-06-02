@@ -4,8 +4,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.paymentsystemproject.domain.infra.portone.config.PortOneProperties;
-import com.paymentsystemproject.domain.infra.portone.dto.PortOneCancelRequest;
-import com.paymentsystemproject.domain.infra.portone.dto.PortOnePaymentResponse;
+import com.paymentsystemproject.domain.infra.portone.dto.PortOneCancelRequestDto;
+import com.paymentsystemproject.domain.infra.portone.dto.PortOnePaymentResponseDto;
 import com.paymentsystemproject.domain.payment.port.PaymentGateway;
 import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponse;
 
@@ -26,15 +26,15 @@ public class PortOneClient implements PaymentGateway {
         log.info("PortOne 결제 조회: {}", paymentId);
 
         // portOneRestClient https://api.portone.io/payments/{paymnetId}?storeId={storeId}
-        PortOnePaymentResponse response = portOneRestClient.get()
+        PortOnePaymentResponseDto response = portOneRestClient.get()
             .uri(uriBuilder -> uriBuilder.path("/payments/{paymentId}")
                 .queryParam("storeId", portOneProperties.getStoreId())
                 .build(paymentId))
             .retrieve()
-            .body(PortOnePaymentResponse.class);
+            .body(PortOnePaymentResponseDto.class);
 
         // PortOne 응답 결과인 PortOnePaymentResponse를 PaymentGatewayResponse로 변환
-        return new PaymentGatewayResponse(response.id(), response.status(), response.amount().total());
+        return response.toGatewayResponse();
     }
 
     @Override
@@ -43,7 +43,7 @@ public class PortOneClient implements PaymentGateway {
 
         portOneRestClient.post()
             .uri("/payments/{paymentId}/cancel", paymentId)
-            .body(new PortOneCancelRequest(reason, amount, null, portOneProperties.getStoreId()))
+            .body(new PortOneCancelRequestDto(reason, amount, null, portOneProperties.getStoreId()))
             .retrieve()
             .toBodilessEntity();
     }

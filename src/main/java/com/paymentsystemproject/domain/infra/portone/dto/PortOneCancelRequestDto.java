@@ -16,7 +16,7 @@ package com.paymentsystemproject.domain.infra.portone.dto;
  * - currentCancellableAmount: 결제 건의 취소 가능 잔액 (본 취소 요청 이전의 취소 가능 잔액으로써, 값을 입력하면 잔액이 일치하는 경우에만 취소가 진행됩니다. 값을 입력하지 않으면 별도의 검증 처리를 수행하지 않습니다.)
  * - refundAccount: 고객 정보 입력 형식 CancelPaymentBodyRefundAccount(bank, number, holderName)
  */
-public record PortOneCancelRequest(
+public record PortOneCancelRequestDto(
     String reason,                    // [필수] 취소 사유
     Integer amount,                   // [선택] 취소 금액. null이면 전액 취소
     Integer currentCancellableAmount, // [선택] 현재 취소 가능 금액 검증용

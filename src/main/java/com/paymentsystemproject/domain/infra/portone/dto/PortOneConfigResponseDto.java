@@ -1,6 +1,6 @@
 package com.paymentsystemproject.domain.infra.portone.dto;
 
-public record PortOneConfigResponse(
+public record PortOneConfigResponseDto(
     String storeId,
     String channelKey
 ) {
