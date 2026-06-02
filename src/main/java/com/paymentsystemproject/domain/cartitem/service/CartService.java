@@ -97,14 +97,7 @@ public class CartService {
     }
 
     private GetCartItemResponseDto toResponse(CartItem item) {
-        return new GetCartItemResponseDto(
-            item.getId(),
-            item.getProduct().getId(),
-            item.getProduct().getName(),
-            item.getProduct().getPrice(),
-            item.getQuantity(),
-            item.getProduct().getStock()
-        );
+        return GetCartItemResponseDto.from(item);
     }
 
 }

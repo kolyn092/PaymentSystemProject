@@ -31,28 +31,14 @@ public class ProductService {
             .map(this::toResponse)
             .toList();
 
-        return new GetProductPageableResponseDto(
-            content,
-            productPage.getNumber(),
-            productPage.getSize(),
-            productPage.getTotalElements(),
-            productPage.getTotalPages()
-        );
+        return GetProductPageableResponseDto.from(productPage, content);
     }
 
     public GetOneProductResponseDto findOneProduct(Long productId) {
         Product product = productRepository.findById(productId).orElseThrow(
             () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
         );
-        return new GetOneProductResponseDto(
-            product.getId(),
-            product.getName(),
-            product.getPrice(),
-            product.getStock(),
-            product.getDescription(),
-            product.getStatus(),
-            product.getCategory()
-        );
+        return GetOneProductResponseDto.from(product);
     }
 
     private GetProductListResponseDto toResponse(Product product) {

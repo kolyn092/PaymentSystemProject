@@ -44,52 +44,52 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GetCartItemResponseDto>> getItems(
+    public ResponseEntity<ApiResponse<List<GetCartItemResponseDto>>> getItems(
         @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // userDetails에서 getMemberId()로 꺼내서 넘겨줍니다.
         return ResponseEntity.status(HttpStatus.OK)
-            .body(cartService.getCartItems(userDetails.getMemberId()));
+            .body(ApiResponse.ok(cartService.getCartItems(userDetails.getMemberId())));
     }
 
     @GetMapping("/selected")
-    public ResponseEntity<List<GetCartItemResponseDto>> getSelectedItems(
+    public ResponseEntity<ApiResponse<List<GetCartItemResponseDto>>> getSelectedItems(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(name = "ids", required = false) List<Long> cartItemIds) {
 
         if (cartItemIds == null || cartItemIds.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.OK).body(List.of());
+            return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(List.of()));
         }
 
         List<GetCartItemResponseDto> responseDtoList =
             cartService.getSelectedItems(userDetails.getMemberId(), cartItemIds);
-        return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(responseDtoList));
     }
 
     @PatchMapping
-    public ResponseEntity<String> updateQuantity(
+    public ResponseEntity<ApiResponse<String>> updateQuantity(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody UpdateCartRequestDto request) {
 
         cartService.updateQuantity(userDetails.getMemberId(), request);
-        return ResponseEntity.status(HttpStatus.OK).body("수량이 성공적으로 변경되었습니다.");
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok("수량이 성공적으로 변경되었습니다."));
     }
 
     @DeleteMapping("/{cartItemId}")
-    public ResponseEntity<String> removeItem(
+    public ResponseEntity<ApiResponse<String>> removeItem(
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long cartItemId) {
 
         cartService.removeItem(userDetails.getMemberId(), cartItemId);
-        return ResponseEntity.status(HttpStatus.OK).body("상품이 장바구니에서 삭제되었습니다.");
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok("상품이 장바구니에서 삭제되었습니다."));
     }
 
     @DeleteMapping
-    public ResponseEntity<String> removeCart(
+    public ResponseEntity<ApiResponse<String>> removeCart(
         @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         cartService.removeCart(userDetails.getMemberId());
-        return ResponseEntity.status(HttpStatus.OK).body("장바구니가 모두 비워졌습니다.");
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok("장바구니가 모두 비워졌습니다."));
     }
 
 }
