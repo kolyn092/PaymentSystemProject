@@ -92,4 +92,10 @@ public class Payment extends BaseTimeEntity {
             PaymentStatus.PENDING
         );
     }
+
+    public void changeStatus(PaymentStatus nextStatus) {
+        this.status.validateTransition(nextStatus);
+        this.status = nextStatus;
+    }
+
 }
