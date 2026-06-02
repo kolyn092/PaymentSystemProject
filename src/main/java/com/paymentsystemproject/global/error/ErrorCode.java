@@ -25,7 +25,7 @@ public enum ErrorCode {
     MINUS_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_002", "포인트는 음수일 수 없습니다."),
     POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_003", "주문 금액보다 많이 사용할 수 없습니다.");
 
-    private final HttpStatus status;
-    private final String code;
-    private final String message;
+	private final HttpStatus status;
+	private final String code;
+	private final String message;
 }
