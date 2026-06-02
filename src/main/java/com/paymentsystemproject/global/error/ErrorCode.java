@@ -22,6 +22,7 @@ public enum ErrorCode {
 
     //Product
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_051", "상품을 찾을 수 없습니다."),
+    INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "PRODUCT_052", "재고가 부족합니다."),
 
     //CartItem
     CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_101", "장바구니 항목을 찾을 수 없습니다."),

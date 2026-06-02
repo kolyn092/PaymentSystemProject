@@ -1,6 +1,8 @@
 package com.paymentsystemproject.domain.product.entity;
 
 import com.paymentsystemproject.global.entity.BaseTimeEntity;
+import com.paymentsystemproject.global.error.BusinessException;
+import com.paymentsystemproject.global.error.ErrorCode;
 import com.paymentsystemproject.global.status.ProductCategory;
 import com.paymentsystemproject.global.status.ProductStatus;
 
@@ -57,5 +59,15 @@ public class Product extends BaseTimeEntity {
     public static Product from(String name, int price, int stock, String description, ProductStatus status,
         ProductCategory category) {
         return new Product(name, price, stock, description, status, category);
+    }
+
+    public void decreaseStock(int quantity) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+        if (quantity > this.stock) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
+        this.stock -= quantity;
     }
 }
