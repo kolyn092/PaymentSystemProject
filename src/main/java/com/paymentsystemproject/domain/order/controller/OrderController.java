@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +22,7 @@ import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.service.OrderService;
 import com.paymentsystemproject.global.response.ApiResponse;
+import com.paymentsystemproject.global.security.CustomUserDetails;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,42 +35,42 @@ public class OrderController {
 
     @GetMapping("/preview")
     public ResponseEntity<ApiResponse<GetOrderPreviewResponseDto>> getOrderPreview(
-        @RequestParam Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(required = false) List<Long> cartItemIds) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderPreview(memberId, cartItemIds)));
+            .body(ApiResponse.ok(orderService.getOrderPreview(userDetails.getMemberId(), cartItemIds)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CreateOrderResponseDto>> createOrder(
-        @RequestParam Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestBody CreateOrderRequestDto requestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(orderService.createOrder(memberId, requestDto)));
+            .body(ApiResponse.ok(orderService.createOrder(userDetails.getMemberId(), requestDto)));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<GetOrderListResponseDto>>> getOrderList(
-        @RequestParam Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderList(memberId, page, size)));
+            .body(ApiResponse.ok(orderService.getOrderList(userDetails.getMemberId(), page, size)));
     }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<GetOrderDetailResponseDto>> getOrderDetail(
-        @RequestParam Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderDetail(memberId, orderId)));
+            .body(ApiResponse.ok(orderService.getOrderDetail(userDetails.getMemberId(), orderId)));
     }
 
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<CancelOrderResponseDto>> cancelOrder(
-        @RequestParam Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.cancelOrder(memberId, orderId)));
+            .body(ApiResponse.ok(orderService.cancelOrder(userDetails.getMemberId(), orderId)));
     }
 }
