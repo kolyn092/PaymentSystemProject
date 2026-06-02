@@ -44,7 +44,7 @@ public class CartController {
 
     @GetMapping
     public ResponseEntity<List<GetCartItemResponseDto>> getItems(
-        @AuthenticationPrincipal CustomUserDetails userDetails) { // 👈 변경!
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // userDetails에서 getMemberId()로 꺼내서 넘겨줍니다.
         return ResponseEntity.status(HttpStatus.OK)
@@ -53,7 +53,7 @@ public class CartController {
 
     @GetMapping("/selected")
     public ResponseEntity<List<GetCartItemResponseDto>> getSelectedItems(
-        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(name = "ids", required = false) List<Long> cartItemIds) {
 
         if (cartItemIds == null || cartItemIds.isEmpty()) {
@@ -66,29 +66,29 @@ public class CartController {
     }
 
     @PatchMapping
-    public ResponseEntity<Void> updateQuantity(
-        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
+    public ResponseEntity<String> updateQuantity(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody UpdateCartRequestDto request) {
 
         cartService.updateQuantity(userDetails.getMemberId(), request);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK).body("수량이 성공적으로 변경되었습니다.");
     }
 
     @DeleteMapping("/{cartItemId}")
-    public ResponseEntity<Void> removeItem(
-        @AuthenticationPrincipal CustomUserDetails userDetails, // 👈 변경!
+    public ResponseEntity<String> removeItem(
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long cartItemId) {
 
         cartService.removeItem(userDetails.getMemberId(), cartItemId);
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK).body("상품이 장바구니에서 삭제되었습니다.");
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> removeCart(
-        @AuthenticationPrincipal CustomUserDetails userDetails) { // 👈 변경!
+    public ResponseEntity<String> removeCart(
+        @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         cartService.removeCart(userDetails.getMemberId());
-        return ResponseEntity.status(HttpStatus.OK).build();
+        return ResponseEntity.status(HttpStatus.OK).body("장바구니가 모두 비워졌습니다.");
     }
 
 }
