@@ -20,6 +20,7 @@ import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.service.CartService;
+import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 
@@ -35,11 +36,11 @@ public class CartController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<AddCartResponseDto> addItem(@Valid @RequestBody AddCartRequestDto request) {
+    public ResponseEntity<ApiResponse<AddCartResponseDto>> addItem(@Valid @RequestBody AddCartRequestDto request) {
         Long savedItem = cartService.addItem(request);
 
         AddCartResponseDto responseDto = new AddCartResponseDto(savedItem);
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(responseDto));
     }
 
     @GetMapping
