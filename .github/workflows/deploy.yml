@@ -14,6 +14,9 @@ on:
       - README.md
   workflow_dispatch:
 
+concurrency:
+  group: deploy-${{ github.ref }}
+
 # 워크플로우 전체에서 사용할 공통 환경변수이다.
 # AWS_REGION: AWS 지역
 # ECR_REPOSITORY: Docker 이미지를 저장할 ECR 저장소 이름
