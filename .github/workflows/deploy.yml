@@ -153,12 +153,17 @@ jobs:
       # 3. user-data.sh를 base64로 변환
       # 4. 기존 Launch Template 기반으로 새 버전 생성
       # 5. Launch Template 버전 번호를 Github Actions output으로 저장
+      # SSM Parameter Store에서 민감한 정보를 읽어오도록 user-data 스크립트 생성
+      # Launch Template에는 파라미터 경로만 저장되고, 실제 값은 EC2 시작 시 런타임에 조회
       - name: Create launch template version
         id: create-launch-template-version
         run: |
           cat > user-data.sh << 'EOF'
           #!/bin/bash
           set -e
+
+          REGION="ap-northeast-2"
+          SSM_PREFIX="/payment-system/prod"
 
           if command -v dnf >/dev/null 2>&1; then
             dnf install -y docker awscli
@@ -169,29 +174,57 @@ jobs:
           systemctl enable docker
           systemctl start docker
 
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
-            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          # SSM Parameter Store에서 설정값 조회
+          get_param() {
+            aws ssm get-parameter \
+              --region "$REGION" \
+              --name "$SSM_PREFIX/$1" \
+              --with-decryption \
+              --query 'Parameter.Value' \
+              --output text
+          }
 
-          docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          DB_HOST=$(get_param "db-host")
+          DB_PORT=$(get_param "db-port")
+          DB_NAME=$(get_param "db-name")
+          DB_USER=$(get_param "db-username")
+          DB_PASSWORD=$(get_param "db-password")
+          JWT_SECRET=$(get_param "jwt-secret")
+          DDL_AUTO=$(get_param "ddl-auto")
 
-          docker stop ${{ env.CONTAINER_NAME }} || true
-          docker rm ${{ env.CONTAINER_NAME }} || true
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+          IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          aws ecr get-login-password --region "$REGION" \
+            | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+          docker pull "$IMAGE_NAME"
+
+          docker stop "$CONTAINER_NAME" || true
+          docker rm "$CONTAINER_NAME" || true
 
           docker run -d \
-            --name ${{ env.CONTAINER_NAME }} \
+            --name "$CONTAINER_NAME" \
             --restart unless-stopped \
-            -p ${{ env.APP_PORT }}:8080 \
+            -p "${APP_PORT}:8080" \
             -e SPRING_PROFILES_ACTIVE=prod \
-            -e DB_HOST=${{ secrets.RDS_ENDPOINT }} \
-            -e DB_PORT=${{ secrets.RDS_PORT }} \
-            -e DB_NAME=${{ secrets.RDS_DATABASE }} \
-            -e DB_USER=${{ secrets.RDS_USERNAME }} \
-            -e DB_PASSWORD=${{ secrets.RDS_PASSWORD }} \
-            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-            -e DDL_AUTO=${{ secrets.DDL_AUTO }} \
+            -e DB_HOST="$DB_HOST" \
+            -e DB_PORT="$DB_PORT" \
+            -e DB_NAME="$DB_NAME" \
+            -e DB_USER="$DB_USER" \
+            -e DB_PASSWORD="$DB_PASSWORD" \
+            -e JWT_SECRET="$JWT_SECRET" \
+            -e DDL_AUTO="$DDL_AUTO" \
             -e SQL_INIT=never \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+            "$IMAGE_NAME"
           EOF
+
+          # 민감하지 않은 값들은 환경변수로 주입 (Launch Template에 저장되어도 무방)
+          sed -i "s|\${AWS_ACCOUNT_ID}|${{ secrets.AWS_ACCOUNT_ID }}|g" user-data.sh
+          sed -i "s|\${ECR_REPOSITORY}|${{ env.ECR_REPOSITORY }}|g" user-data.sh
+          sed -i "s|\${IMAGE_TAG}|${{ github.sha }}|g" user-data.sh
+          sed -i "s|\${CONTAINER_NAME}|${{ env.CONTAINER_NAME }}|g" user-data.sh
+          sed -i "s|\${APP_PORT}|${{ env.APP_PORT }}|g" user-data.sh
 
           USER_DATA=$(base64 -w 0 user-data.sh)
 
