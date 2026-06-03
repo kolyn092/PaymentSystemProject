@@ -2,7 +2,7 @@
 name: CI/CD Pipeline
 
 # 워크플로우 실행 조건
-# branches: 설정한 브랜치에 pudh가 발생하면 실행한다.
+# branches: 설정한 브랜치에 push가 발생하면 실행한다.
 # paths-ignore: README.md 만 변경된 경우에는 실행하지 않는다.
 # workflow_dispatch: GitHub Actions 화면에서 수동 실행할 수 있게 해주는 옵션이다.
 on:
@@ -115,15 +115,15 @@ jobs:
           docker build \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          
+
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  # EC2에 배포한다.
+  # ASG Instance Refresh 방식으로 배포한다.
   # needs: docker -> Docker 이미지 빌드와 push가 성공해야 실행된다.
   # GitHub Environments의 production 환경을 사용한다.
   deploy:
-    name: Deploy to EC2
+    name: Deploy with ASG Instance Refresh
     runs-on: ubuntu-latest
     needs: docker
     environment: production
@@ -137,41 +137,110 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # EC2에 직접 SSH 접속하지 않고 AWS Systems Manager SSM으로 명령을 실행한다.
-      # SSM을 통해 EC2 인스턴스에 shell script를 전달한다.
-      # 1. EC2에서 쉘 명령어를 실행한다.
-      # 2. 배포 대상 EC2를 태그로 찾는다.
-      # 3. EC2에서 ECR에 로그인하여 최신 이미지를 가져온다.
-      # 4. 기존 컨테이너가 있다면 중지하고 삭제한다.
-      # 5. 새 컨테이너를 실행한다.
-      # 6. 컨테이너 실행 후 20초 기다렸다가 Health 엔드포인트를 호출한다.
-      # 7. SSM 명령 전송이 완료되었다는 것을 Actions 로그에 남긴다.
-      - name: Deploy Spring Boot app via SSM
+      # 1. ASG에서 사용할 Launch Template 새 버전 생성
+      # 2. EC2가 새로 시작될 때 실행할 스크립트를 user-data.sh 파일로 만든다.
+      #     user-data.sh 내용
+      #       - Docker, AWS CLI 설치
+      #       - Docker 서비스 실행
+      #       - ECR 로그인
+      #       - docker job에서 ECR에 push한 이미지를 새로운 EC2에서 pull
+      #       - 같은 이름의 컨테이너가 이미 있다면 중지하고 삭제
+      #       - 컨테이너 실행
+      #       - 종료
+      # 3. user-data.sh를 base64로 변환
+      # 4. 기존 Launch Template 기반으로 새 버전 생성
+      # 5. Launch Template 버전 번호를 Github Actions output으로 저장
+      - name: Create launch template version
+        id: create-launch-template-version
         run: |
-          aws ssm send-command \
-            --region ${{ env.AWS_REGION }} \
-            --document-name "AWS-RunShellScript" \
-            --comment "Deploy payment-system-project to EC2" \
-            --targets "Key=tag:Role,Values=${{ secrets.EC2_SSM_TARGET_ROLE }}" \
-            --parameters commands='[
-              "set -e",
-              "echo Logging in to Amazon ECR...",
-              "aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com",
-          
-              "echo Pulling latest image...",
-              "docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}",
-          
-              "echo Stopping old container...",
-              "docker stop ${{ env.CONTAINER_NAME }} || true",
-              "docker rm ${{ env.CONTAINER_NAME }} || true",
-          
-              "echo Starting new container...",
-              "docker run -d --name ${{ env.CONTAINER_NAME }} --restart unless-stopped -p ${{ env.APP_PORT }}:8080 -e SPRING_PROFILES_ACTIVE=prod -e DB_HOST=${{ secrets.RDS_ENDPOINT }} -e DB_PORT=${{ secrets.RDS_PORT }} -e DB_NAME=${{ secrets.RDS_DATABASE }} -e DB_USER=${{ secrets.RDS_USERNAME }} -e DB_PASSWORD=${{ secrets.RDS_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e DDL_AUTO=${{ secrets.DDL_AUTO }} -e SQL_INIT=never ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}",
-          
-              "echo Health check...",
-              "sleep 20",
-              "curl -f http://localhost:${{ env.APP_PORT }}/actuator/health || (docker logs ${{ env.CONTAINER_NAME }} && exit 1)"
-            ]'
+          cat > user-data.sh << 'EOF'
+          #!/bin/bash
+          set -e
 
-      - name: Deployment triggered
-        run: echo "SSM deployment command sent to EC2 instances."
+          if command -v dnf >/dev/null 2>&1; then
+            dnf install -y docker awscli
+          else
+            yum install -y docker awscli
+          fi
+
+          systemctl enable docker
+          systemctl start docker
+
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+          docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+          docker stop ${{ env.CONTAINER_NAME }} || true
+          docker rm ${{ env.CONTAINER_NAME }} || true
+
+          docker run -d \
+            --name ${{ env.CONTAINER_NAME }} \
+            --restart unless-stopped \
+            -p ${{ env.APP_PORT }}:8080 \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e DB_HOST=${{ secrets.RDS_ENDPOINT }} \
+            -e DB_PORT=${{ secrets.RDS_PORT }} \
+            -e DB_NAME=${{ secrets.RDS_DATABASE }} \
+            -e DB_USER=${{ secrets.RDS_USERNAME }} \
+            -e DB_PASSWORD=${{ secrets.RDS_PASSWORD }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -e DDL_AUTO=${{ secrets.DDL_AUTO }} \
+            -e SQL_INIT=never \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          EOF
+
+          USER_DATA=$(base64 -w 0 user-data.sh)
+
+          LT_VERSION=$(aws ec2 create-launch-template-version \
+            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
+            --source-version '$Latest' \
+            --version-description "deploy-${{ github.sha }}" \
+            --launch-template-data "{\"UserData\":\"$USER_DATA\"}" \
+            --query 'LaunchTemplateVersion.VersionNumber' \
+            --output text)
+
+          echo "lt_version=$LT_VERSION" >> "$GITHUB_OUTPUT"
+
+      # 6. ASG가 새 Launch Template 버전을 사용하도록 업데이트
+      - name: Update Auto Scaling Group
+        run: |
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+            --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version=${{ steps.create-launch-template-version.outputs.lt_version }}
+
+      # 7. Instance Refresh 시작, Instance Refresh ID 저장
+      - name: Start instance refresh
+        id: start-instance-refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+            --preferences '{"MinHealthyPercentage":100,"InstanceWarmup":120}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+
+          echo "refresh_id=$REFRESH_ID" >> "$GITHUB_OUTPUT"
+
+      # 8. Instance Refresh 결과 대기
+      #     Instance Refresh가 끝날 때까지 반복해서 상태를 확인한다.
+      - name: Wait for instance refresh result
+        run: |
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+              --instance-refresh-ids ${{ steps.start-instance-refresh.outputs.refresh_id }} \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance refresh status: $STATUS"
+
+            if [ "$STATUS" = "Successful" ]; then
+              exit 0
+            fi
+
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
+              exit 1
+            fi
+
+            sleep 30
+          done
