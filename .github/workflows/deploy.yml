@@ -227,6 +227,7 @@ jobs:
       # 8. Instance Refresh 결과 대기
       #     Instance Refresh가 끝날 때까지 반복해서 상태를 확인한다.
       - name: Wait for instance refresh result
+        timeout-minutes: 30
         run: |
           while true; do
             STATUS=$(aws autoscaling describe-instance-refreshes \
