@@ -8,7 +8,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - prod
     paths-ignore:
       - 'docs/**'
       - '*.md'
