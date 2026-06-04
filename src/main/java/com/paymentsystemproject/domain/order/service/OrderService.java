@@ -159,7 +159,7 @@ public class OrderService {
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
         for (OrderItem orderItem : order.getOrderItems()) {
-            orderItem.getProduct().increaseStock(orderItem.getQuantity());
+            orderItem.getProduct().restoreStock(orderItem.getQuantity());
         }
         payment.changeStatus(PaymentStatus.CANCELED);
 
