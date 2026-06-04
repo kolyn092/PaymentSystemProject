@@ -115,7 +115,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build \
+          docker build --platform linux/arm64 \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
@@ -164,6 +164,8 @@ jobs:
 
           REGION="ap-northeast-2"
           SSM_PREFIX="/payment-system/prod"
+          CONTAINER_NAME="payment-system"
+          APP_PORT="8080"
 
           if command -v dnf >/dev/null 2>&1; then
             dnf install -y docker awscli
