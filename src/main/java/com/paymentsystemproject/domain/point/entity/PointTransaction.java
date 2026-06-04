@@ -23,21 +23,54 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointTransaction extends BaseTimeEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "member_id", nullable = false)
-	private Member member;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "payment_id", nullable = false)
-	private Payment payment;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment;
 
-	@Column(length = 20, nullable = false)
-	private String type;
+    @Column(length = 20, nullable = false)
+    private String type;
 
-	@Column(nullable = false)
-	private Integer amount;
+    @Column(nullable = false)
+    private Integer amount;
+
+    private PointTransaction(Member member, Payment payment, String type, Integer amount) {
+        this.member = member;
+        this.payment = payment;
+        this.type = type;
+        this.amount = amount;
+    }
+
+    public static PointTransaction createRefundUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return new PointTransaction(
+            member,
+            payment,
+            "REFUND_USE",
+            amount
+        );
+    }
+
+    public static PointTransaction createCancelEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return new PointTransaction(
+            member,
+            payment,
+            "CANCEL_EARN",
+            -amount
+        );
+    }
 }

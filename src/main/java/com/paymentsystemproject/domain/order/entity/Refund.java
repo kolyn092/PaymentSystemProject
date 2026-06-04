@@ -22,23 +22,52 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Refund extends BaseTimeEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "payment_id", nullable = false)
-	private Payment payment;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment;
 
-	@Column(length = 500)
-	private String reason;
+    @Column(length = 500)
+    private String reason;
 
-	@Column(name = "point_refund_amount", nullable = false)
-	private Integer pointRefundAmount;
+    @Column(name = "point_refund_amount", nullable = false)
+    private Integer pointRefundAmount;
 
-	@Column(name = "pg_refund_amount", nullable = false)
-	private Integer pgRefundAmount;
+    @Column(name = "pg_refund_amount", nullable = false)
+    private Integer pgRefundAmount;
 
-	@Column(length = 20, nullable = false)
-	private String status;
+    @Column(length = 20, nullable = false)
+    private String status;
+
+    private Refund(
+        Payment payment,
+        String reason,
+        Integer pointRefundAmount,
+        Integer pgRefundAmount,
+        String status
+    ) {
+        this.payment = payment;
+        this.reason = reason;
+        this.pointRefundAmount = pointRefundAmount;
+        this.pgRefundAmount = pgRefundAmount;
+        this.status = status;
+    }
+
+    public static Refund createCompletedRefund(
+        Payment payment,
+        String reason,
+        Integer pointRefundAmount,
+        Integer pgRefundAmount
+    ) {
+        return new Refund(
+            payment,
+            reason,
+            pointRefundAmount,
+            pgRefundAmount,
+            "COMPLETED"
+        );
+    }
 }
