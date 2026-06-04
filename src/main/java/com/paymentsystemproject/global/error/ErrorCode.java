@@ -28,6 +28,8 @@ public enum ErrorCode {
     ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT_005", "이미 결제를 완료하였습니다."),
     PAYMENT_NOT_PAID(HttpStatus.BAD_REQUEST, "PAYMENT_006", "결제가 완료되지 않았습니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_007", "결제 금액이 불일치합니다."),
+    PAYMENT_ALREADY_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT_008", "이미 실패한 결제입니다."),
+    PAYMENT_ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "PAYMENT_009", "이미 취소된 결제입니다."),
     POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_00", "주문 금액보다 많이 사용할 수 없습니다.");
 
     private final HttpStatus status;

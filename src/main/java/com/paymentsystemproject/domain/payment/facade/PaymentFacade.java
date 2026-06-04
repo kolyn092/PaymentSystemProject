@@ -6,7 +6,6 @@ import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmRequestDto;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
-import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.port.PaymentGateway;
 import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponseDto;
 import com.paymentsystemproject.domain.payment.service.PaymentCommandService;
@@ -71,7 +70,7 @@ public class PaymentFacade {
         // 10. 승인 금액 검증 - PortOne 결제 금액 == payment.pgAmount
         handleIfAmountMismatch(payment, order, pgPayment);
 
-        return paymentCommandService.approvePaymentAndOrder(order.getId());
+        return paymentCommandService.completePayment(order.getId());
     }
 
     // 기본 유효성 검증
@@ -91,9 +90,6 @@ public class PaymentFacade {
 
         // 6. Order 상태 검증
         validateOrderStatus(order);
-
-        // 7. Payment 상태 검증
-        validatePendingPayment(payment);
 
         return null;
     }
@@ -117,12 +113,13 @@ public class PaymentFacade {
     }
 
     private PaymentConfirmResponseDto handleIdempotency(Payment payment) {
-        if (payment.getStatus() == PaymentStatus.COMPLETED) {
-            log.info("이미 승인이 된 결제 요청입니다. paymentId={}", payment.getId());
-
-            return PaymentConfirmResponseDto.of(payment, "이미 승인이 된 결제 요청입니다.");
-        }
-        return null;
+        return switch (payment.getStatus()) {
+            case COMPLETED -> PaymentConfirmResponseDto.of(payment, "이미 승인된 결제입니다.");
+            case FAILED -> throw new BusinessException(ErrorCode.PAYMENT_ALREADY_FAILED);
+            case CANCELED -> throw new BusinessException(ErrorCode.PAYMENT_ALREADY_CANCELED);
+            case PENDING -> null;
+            default -> throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        };
     }
 
     // 주문 상태 검증
@@ -133,29 +130,18 @@ public class PaymentFacade {
         // }
     }
 
-    // 결제 상태 검증
-    private void validatePendingPayment(Payment payment) {
-        if (payment.getStatus() != PaymentStatus.PENDING) {
-            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
-        }
-    }
-
     // PG 결제 상태가 완료인지 확인
     private void handleIfPgPaymentNotCompleted(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
-        if (PG_STATUS_COMPLETED.equals(pgPayment.status())) {
-            return;
+        if (!PG_STATUS_COMPLETED.equals(pgPayment.status())) {
+            log.error("결제 승인 실패 - PG 상태 비정상: paymentId={}, pgStatus={}", payment.getId(), pgPayment.status());
+            paymentCommandService.failPayment(order.getId());
+            throw new BusinessException(ErrorCode.PAYMENT_NOT_PAID);
         }
-
-        log.error("결제 승인 실패 - PG 상태 비정상: paymentId={}, pgStatus={}", payment.getId(), pgPayment.status());
-
-        paymentCommandService.failPaymentAndOrder(order.getId());
-
-        throw new BusinessException(ErrorCode.PAYMENT_NOT_PAID);
     }
 
     // 서버 결제 금액과 PG 실제 결제 금액 비교
     private void handleIfAmountMismatch(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
-        if (payment.getPgAmount() == pgPayment.totalAmount()) {
+        if (payment.getPgAmount().equals(pgPayment.totalAmount())) {
             return;
         }
 
@@ -164,7 +150,7 @@ public class PaymentFacade {
 
         cancelPgPaymentSafely(payment.getPortonePaymentId());
 
-        paymentCommandService.failPaymentAndOrder(order.getId());
+        paymentCommandService.failPayment(order.getId());
 
         throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
     }
@@ -177,4 +163,5 @@ public class PaymentFacade {
             log.error("PG 자동 취소 실패 - 수동 처리 필요: portOnePaymentId={}", portonePaymentId, e);
         }
     }
+
 }

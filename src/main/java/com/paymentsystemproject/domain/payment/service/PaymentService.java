@@ -40,6 +40,7 @@ public class PaymentService {
     }
 
     // 다른 곳에서도 사용할 수 있게 따로 메소드 생성함.
+    @Transactional(readOnly = true)
     public Payment findByOrderIdWithOrder(Long orderId) {
         return paymentRepository.findByOrderIdWithOrder(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));

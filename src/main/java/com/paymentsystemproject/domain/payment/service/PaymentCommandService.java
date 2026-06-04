@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
+import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -20,34 +21,27 @@ public class PaymentCommandService {
     // private final OrderService orderService;
     // private final ProductService productService;
 
-    // todo - 실패 케이스 처리
-
     /**
-     * 결제 실패 처리
-     *
-     * 흐름:
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
      *   2) 결제 상태 → FAILED
      *   3) 주문 상태 → CANCELED
      *   4) 주문에 포함된 상품들의 재고를 원래대로 복구
      *   5) 장바구니 유지
-     *
-     *   실패 케이스:
-     *   1. 금액 불일치
-     *   2. 결제 상태 실패
-     *   3. 주문 소유자 불일치
-     *   4. 이미 처리된 결제
-     *   5. 존재하지 않는 주문
-     *
-     * 주문 생성 시 차감했던 재고를 되돌려 놓아야 다른 고객이 구매할 수 있으므로 재고 복구가 필수다.
-     * - @Transactional 로 묶어 전체가 원자적으로 실행된다.
      */
     @Transactional
-    public void failPaymentAndOrder(Long orderId) {
+    public void failPayment(Long orderId) {
         // 결제 & 주문 조회
         Payment payment = paymentRepository.findByOrderIdWithOrderForUpdate(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
         Order order = payment.getOrder();
+
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            return;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        }
 
         // 결제 상태를 실패로 변경
         payment.markAsFailed();
@@ -60,9 +54,6 @@ public class PaymentCommandService {
     }
 
     /**
-     * 결제 승인 처리
-     *
-     * 흐름:
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
      *   2) 결제 상태 → COMPLETED
      *   3) 주문 상태 → CONFIRMED
@@ -73,10 +64,9 @@ public class PaymentCommandService {
      *   7) 포인트 잔액 갱신
      *   8) 장바구니 초기화
      *   9) 화면/클라이언트에 내려줄 응답 DTO 생성
-     *
      */
     @Transactional
-    public PaymentConfirmResponseDto approvePaymentAndOrder(Long orderId) {
+    public PaymentConfirmResponseDto completePayment(Long orderId) {
         // 1) 주문 & 결제 조회
         Payment payment = paymentRepository.findByOrderIdWithOrderForUpdate(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
@@ -84,6 +74,14 @@ public class PaymentCommandService {
         Order order = payment.getOrder();
 
         // 2) 결제 상태 -> COMPLETED로 변경
+        // 멱등성 검증
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+            return PaymentConfirmResponseDto.of(payment, "이미 승인이 완료된 결제입니다.");
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        }
         payment.markAsCompleted();
 
         // 3) 주문 상태 -> CONFIRMED로 변경
@@ -102,7 +100,7 @@ public class PaymentCommandService {
 
         // 8) 장바구니 초기화
 
-        // dto 생성
+        // 9) dto 생성
         return PaymentConfirmResponseDto.of(payment, "결제가 완료되었습니다.");
     }
 
