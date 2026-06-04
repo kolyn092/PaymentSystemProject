@@ -24,6 +24,7 @@ import com.paymentsystemproject.domain.order.service.OrderService;
 import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -44,7 +45,7 @@ public class OrderController {
     @PostMapping
     public ResponseEntity<ApiResponse<CreateOrderResponseDto>> createOrder(
         @AuthenticationPrincipal CustomUserDetails userDetails,
-        @RequestBody CreateOrderRequestDto requestDto) {
+        @Valid @RequestBody CreateOrderRequestDto requestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.ok(orderService.createOrder(userDetails.getMemberId(), requestDto)));
     }
