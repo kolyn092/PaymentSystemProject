@@ -1,0 +1,283 @@
+# GitHub Actions 화면에 표시될 워크플로우 이름
+name: CI/CD Pipeline
+
+# 워크플로우 실행 조건
+# branches: 설정한 브랜치에 push가 발생하면 실행한다.
+# paths-ignore: README.md 만 변경된 경우에는 실행하지 않는다.
+# workflow_dispatch: GitHub Actions 화면에서 수동 실행할 수 있게 해주는 옵션이다.
+on:
+  push:
+    branches:
+      - prod
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+
+# 워크플로우 전체에서 사용할 공통 환경변수이다.
+# AWS_REGION: AWS 지역
+# ECR_REPOSITORY: Docker 이미지를 저장할 ECR 저장소 이름
+# CONTAINER_NAME: EC2에서 실행될 Docker 컨테이너 이름
+# APP_PORT: EC2에서 열어둘 애플리케이션 포트
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: payment-system
+  CONTAINER_NAME: payment-system
+  APP_PORT: 8080
+
+# build Job
+
+jobs:
+  # Ubuntu 환경에서 프로젝트를 빌드하고 테스트한다.
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # GitHub 저장소의 코드를 Actions 실행 환경으로 내려받는다.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Java 17을 설치한다.
+      # AWS 환경과 맞추기 위해 Amazon Corretto 배포판을 사용한다.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+
+      # Linux 환경에서 gradlew를 실행할 수 있도록 권한을 부여한다.
+      - name: Grant execute permission for Gradle
+        run: chmod +x ./gradlew
+
+      # Gradle로 프로젝트를 빌드 및 테스트한다.
+      # 테스트가 실패하면 이 단계에서 job이 실패하고, 이후 작업은 실행되지 않는다.
+      # prod 환경 설정을 사용한다. (SPRING_PROFILES_ACTIVE)
+      - name: Build and test with Gradle
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+        run: ./gradlew clean build
+
+      # 빌드 결과물인 .jar 파일을 업로드한다.
+      # if-no-files-found: error로 jar 파일이 없으면 명확하게 실패 처리한다.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jar-file
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+  docker:
+    # Docker 이미지를 만들고 ECR에 push한다.
+    # needs: build -> build job이 성공해야만 실행한다.
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # Dockerfile을 포함한 프로젝트 파일을 다시 체크아웃한다.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 앞의 build job에서 업로드한 jar 파일을 다운로드한다.
+      # path: build/libs/*.jar를 복사하므로 같은 위치에 내려받는다.
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jar-file
+          path: build/libs
+
+      # AWS CLI와 AWS 관련 Actions가 사용할 인증 정보를 설정한다.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Amazon ECR에 Docker login을 수행한다.
+      # id: login-ecr를 지정하여 이후 단계에서 ECR registry 주소를 가져올 수 있다.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Docker 이미지를 빌드하고 ECR에 업로드한다.
+      # 이 때 ECR_REGISTRY는 ECR 주소이다.
+      # IMAGE_TAG는 현재 커밋 SHA를 의미하며,
+      # 배포 추적을 위해 latest와 커밋 SHA 태그를 함께 붙인다.
+      # 이후 Docker 이미지를 빌드하고 동일한 이미지에 태그를 두 개 붙인다.
+      # 두 태그 모두 ECR에 push한다.
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+  # ASG Instance Refresh 방식으로 배포한다.
+  # needs: docker -> Docker 이미지 빌드와 push가 성공해야 실행된다.
+  # GitHub Environments의 production 환경을 사용한다.
+  deploy:
+    name: Deploy with ASG Instance Refresh
+    runs-on: ubuntu-latest
+    needs: docker
+    environment: production
+
+    steps:
+      # AWS CLI를 사용해야 하므로 AWS 인증 정보를 다시 설정한다.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 1. ASG에서 사용할 Launch Template 새 버전 생성
+      # 2. EC2가 새로 시작될 때 실행할 스크립트를 user-data.sh 파일로 만든다.
+      #     user-data.sh 내용
+      #       - Docker, AWS CLI 설치
+      #       - Docker 서비스 실행
+      #       - ECR 로그인
+      #       - docker job에서 ECR에 push한 이미지를 새로운 EC2에서 pull
+      #       - 같은 이름의 컨테이너가 이미 있다면 중지하고 삭제
+      #       - 컨테이너 실행
+      #       - 종료
+      # 3. user-data.sh를 base64로 변환
+      # 4. 기존 Launch Template 기반으로 새 버전 생성
+      # 5. Launch Template 버전 번호를 Github Actions output으로 저장
+      # SSM Parameter Store에서 민감한 정보를 읽어오도록 user-data 스크립트 생성
+      # Launch Template에는 파라미터 경로만 저장되고, 실제 값은 EC2 시작 시 런타임에 조회
+      - name: Create launch template version
+        id: create-launch-template-version
+        run: |
+          cat > user-data.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          REGION="ap-northeast-2"
+          SSM_PREFIX="/payment-system/prod"
+
+          if command -v dnf >/dev/null 2>&1; then
+            dnf install -y docker awscli
+          else
+            yum install -y docker awscli
+          fi
+
+          systemctl enable docker
+          systemctl start docker
+
+          # SSM Parameter Store에서 설정값 조회
+          get_param() {
+            aws ssm get-parameter \
+              --region "$REGION" \
+              --name "$SSM_PREFIX/$1" \
+              --with-decryption \
+              --query 'Parameter.Value' \
+              --output text
+          }
+
+          DB_HOST=$(get_param "db-host")
+          DB_PORT=$(get_param "db-port")
+          DB_NAME=$(get_param "db-name")
+          DB_USER=$(get_param "db-username")
+          DB_PASSWORD=$(get_param "db-password")
+          JWT_SECRET=$(get_param "jwt-secret")
+          DDL_AUTO=$(get_param "ddl-auto")
+
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+          IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          aws ecr get-login-password --region "$REGION" \
+            | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+          docker pull "$IMAGE_NAME"
+
+          docker stop "$CONTAINER_NAME" || true
+          docker rm "$CONTAINER_NAME" || true
+
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p "${APP_PORT}:8080" \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e DB_HOST="$DB_HOST" \
+            -e DB_PORT="$DB_PORT" \
+            -e DB_NAME="$DB_NAME" \
+            -e DB_USER="$DB_USER" \
+            -e DB_PASSWORD="$DB_PASSWORD" \
+            -e JWT_SECRET="$JWT_SECRET" \
+            -e DDL_AUTO="$DDL_AUTO" \
+            -e SQL_INIT=never \
+            "$IMAGE_NAME"
+          EOF
+
+          # 민감하지 않은 값들은 환경변수로 주입 (Launch Template에 저장되어도 무방)
+          sed -i "s|\${AWS_ACCOUNT_ID}|${{ secrets.AWS_ACCOUNT_ID }}|g" user-data.sh
+          sed -i "s|\${ECR_REPOSITORY}|${{ env.ECR_REPOSITORY }}|g" user-data.sh
+          sed -i "s|\${IMAGE_TAG}|${{ github.sha }}|g" user-data.sh
+          sed -i "s|\${CONTAINER_NAME}|${{ env.CONTAINER_NAME }}|g" user-data.sh
+          sed -i "s|\${APP_PORT}|${{ env.APP_PORT }}|g" user-data.sh
+
+          USER_DATA=$(base64 -w 0 user-data.sh)
+
+          LT_VERSION=$(aws ec2 create-launch-template-version \
+            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
+            --source-version '$Latest' \
+            --version-description "deploy-${{ github.sha }}" \
+            --launch-template-data "{\"UserData\":\"$USER_DATA\"}" \
+            --query 'LaunchTemplateVersion.VersionNumber' \
+            --output text)
+
+          echo "lt_version=$LT_VERSION" >> "$GITHUB_OUTPUT"
+
+      # 6. ASG가 새 Launch Template 버전을 사용하도록 업데이트
+      - name: Update Auto Scaling Group
+        run: |
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+            --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version=${{ steps.create-launch-template-version.outputs.lt_version }}
+
+      # 7. Instance Refresh 시작, Instance Refresh ID 저장
+      - name: Start instance refresh
+        id: start-instance-refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+            --preferences '{"MinHealthyPercentage":100,"InstanceWarmup":180}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+
+          echo "refresh_id=$REFRESH_ID" >> "$GITHUB_OUTPUT"
+
+      # 8. Instance Refresh 결과 대기
+      #     Instance Refresh가 끝날 때까지 반복해서 상태를 확인한다.
+      - name: Wait for instance refresh result
+        timeout-minutes: 30
+        run: |
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name ${{ secrets.ASG_NAME }} \
+              --instance-refresh-ids ${{ steps.start-instance-refresh.outputs.refresh_id }} \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance refresh status: $STATUS"
+
+            if [ "$STATUS" = "Successful" ]; then
+              exit 0
+            fi
+
+            if [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
+              exit 1
+            fi
+
+            sleep 30
+          done
