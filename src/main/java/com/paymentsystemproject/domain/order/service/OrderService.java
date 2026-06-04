@@ -144,7 +144,7 @@ public class OrderService {
 
     @Transactional
     public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByWithOrderItems(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         if (!order.getMember().getId().equals(memberId)) {
