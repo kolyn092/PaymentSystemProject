@@ -161,7 +161,7 @@ public class OrderService {
         for (OrderItem orderItem : order.getOrderItems()) {
             orderItem.getProduct().restoreStock(orderItem.getQuantity());
         }
-        payment.changeStatus(PaymentStatus.CANCELED);
+        payment.changeStatus(PaymentStatus.FAILED);
 
         order.cancel();
 
