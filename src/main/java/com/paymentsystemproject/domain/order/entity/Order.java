@@ -24,6 +24,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 주문 엔티티입니다.
+ * 회원이 장바구니에서 선택한 상품들을 기반으로 생성되며,
+ * 주문 번호는 UUID로 생성되어 중복을 방지합니다.
+ * 주문 상태는 PENDING_PAYMENT(결제 대기)로 초기화됩니다.
+ */
+
 @Entity
 @Table(
     name = "orders",
@@ -61,10 +68,15 @@ public class Order extends BaseTimeEntity {
         this.member = member;
         this.orderNumber = orderNumber;
         this.totalAmount = totalAmount;
+        // 주문 생성 시 결제 대기 상태로 초기화
         this.status = OrderStatus.PENDING_PAYMENT;
     }
 
-    // 주문취소 시 상태변경 메서드
+    /**
+     * 주문을 취소 상태로 변경합니다.
+     * 결제 대기 (PENDING_PAYMENT) 상태인 경우에만 호출되어야 합니다.
+     */
+
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
     }

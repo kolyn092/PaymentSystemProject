@@ -35,6 +35,11 @@ import com.paymentsystemproject.global.error.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * 주문 관련 비즈니스 로직을 처리하는 서비스 클래스입니다.
+ * 주문서 미리보기, 주문 생성(결제 준비), 주문 내역 조회 및 취소 등의 기능을 제공합니다.
+ */
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -45,6 +50,15 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
+
+    /**
+     * 장바구니에 담긴 상품들을 결제 직전의 '주문서' 형태로 미리보기 위한 기능입니다.
+     * 장바구니 상품 ID 목록이 없으면 전체 장바구니 항목을 조회하며, 실시간 가격이 반영됩니다.
+     *
+     * @param memberId 회원 ID
+     * @param cartItemIds 결제할 장바구니 항목 ID 목록 (선택)
+     * @return 결제 화면 구성에 필요한 주문서 정보 (총액, 상품 목록 등)
+     */
 
     @Transactional(readOnly = true)
     public GetOrderPreviewResponseDto getOrderPreview(Long memberId, List<Long> cartItemIds) {
@@ -75,6 +89,16 @@ public class OrderService {
 
         return GetOrderPreviewResponseDto.of(items, totalAmount, member.getPointBalance());
     }
+
+    /**
+     * 장바구니에서 선택한 상품들로 주문을 생성하고 결제 정보를 초기화합니다.
+     * 주문 번호는 UUID로 생성되며, 주문 항목은 장바구니 상품 정보를 기반으로 저장됩니다.
+     * 결제 완료 전 재고를 선차감하여 동시 주문으로 인한 초과 판매를 방지합니다.
+     *
+     * @param memberId 회원 ID
+     * @param requestDto 주문할 장바구니 항목 ID 목록 및 사용할 포인트
+     * @return 생성된 주문 정보 및 결제 준비 정보
+     */
 
     @Transactional
     public CreateOrderResponseDto createOrder(Long memberId, CreateOrderRequestDto requestDto) {
@@ -115,6 +139,15 @@ public class OrderService {
         return CreateOrderResponseDto.from(order, payment);
     }
 
+    /**
+     * 로그인한 회원의 주문 목록을 최신순으로 페이징하여 반환합니다.
+     *
+     * @param memberId 회원 ID
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지당 항목 수
+     * @return 주문 목록 (페이징)
+     */
+
     @Transactional(readOnly = true)
     public Page<GetOrderListResponseDto> getOrderList(Long memberId, int page, int size) {
         Member member = memberRepository.findById(memberId)
@@ -126,6 +159,16 @@ public class OrderService {
             .map(GetOrderListResponseDto::from);
     }
 
+    /**
+     * 특정 주문의 상세 정보를 조회합니다.
+     * orderId와 memberId를 함께 조회하여 본인 주문만 접근할 수 있도록 보장하며,
+     * JOIN FETCH를 사용해 함께 주문 항목을 한 번에 가져와 N+1 문제를 방지합니다.
+     *
+     * @param memberId 회원 ID
+     * @param orderId 주문 ID
+     * @return 주문 상세 정보 및 결제 정보
+     */
+
     @Transactional(readOnly = true)
     public GetOrderDetailResponseDto getOrderDetail(Long memberId, Long orderId) {
         Order order = orderRepository.findByIdAndMemberIdWithOrderItems(orderId, memberId)
@@ -136,6 +179,16 @@ public class OrderService {
 
         return GetOrderDetailResponseDto.from(order, payment);
     }
+
+    /**
+     * 결제 대기 상태인 주문을 취소합니다.
+     * orderId와 memberId를 함께 조회하여 본인 부문만 취소할 수 있도록 보장합니다.
+     * 취소 시 선차감했던 재고를 복구하고, 결제 상태를 FAILED로 변경합니다.
+     *
+     * @param memberId 회원 ID
+     * @param orderId 취소할 주문 ID
+     * @return 취소된 주문 정보
+     */
 
     @Transactional
     public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
