@@ -1,16 +1,23 @@
 package com.paymentsystemproject.domain.order.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.global.entity.BaseTimeEntity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -44,5 +51,21 @@ public class Order extends BaseTimeEntity {
     private Integer totalAmount;
 
     @Column(length = 20, nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> orderItems = new ArrayList<>();
+
+    public Order(Member member, String orderNumber, Integer totalAmount) {
+        this.member = member;
+        this.orderNumber = orderNumber;
+        this.totalAmount = totalAmount;
+        this.status = OrderStatus.PENDING_PAYMENT;
+    }
+
+    // 주문취소 시 상태변경 메서드
+    public void cancel() {
+        this.status = OrderStatus.CANCELLED;
+    }
 }

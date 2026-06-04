@@ -42,4 +42,12 @@ public class OrderItem extends BaseTimeEntity {
 
     @Column(nullable = false)
     private Integer quantity;
+
+    public OrderItem(Order order, Product product, String productName, Integer price, Integer quantity) {
+        this.order = order;
+        this.product = product;
+        this.productName = productName;
+        this.price = price;
+        this.quantity = quantity;
+    }
 }
