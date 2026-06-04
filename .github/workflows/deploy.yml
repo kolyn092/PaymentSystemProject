@@ -184,13 +184,13 @@ jobs:
               --output text
           }
 
-          DB_HOST=$(get_param "db-host")
-          DB_PORT=$(get_param "db-port")
-          DB_NAME=$(get_param "db-name")
-          DB_USER=$(get_param "db-username")
-          DB_PASSWORD=$(get_param "db-password")
-          JWT_SECRET=$(get_param "jwt-secret")
-          DDL_AUTO=$(get_param "ddl-auto")
+          DB_HOST=$(get_param "DB_HOST")
+          DB_PORT=$(get_param "DB_PORT")
+          DB_NAME=$(get_param "DB_NAME")
+          DB_USER=$(get_param "DB_USER")
+          DB_PASSWORD=$(get_param "DB_PASSWORD")
+          JWT_SECRET=$(get_param "JWT_SECRET")
+          DDL_AUTO=none
 
           ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
