@@ -106,7 +106,6 @@ public class OrderService {
             orderItemRepository.save(orderItem);
         }
 
-        // 주문 시 재고 선차감
         for (CartItem cartItem : cartItems) {
             cartItem.getProduct().decreaseStock(cartItem.getQuantity());
         }
@@ -129,12 +128,8 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public GetOrderDetailResponseDto getOrderDetail(Long memberId, Long orderId) {
-        Order order = orderRepository.findByWithOrderItems(orderId)
+        Order order = orderRepository.findByIdAndMemberIdWithOrderItems(orderId, memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-
-        if (!order.getMember().getId().equals(memberId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
-        }
 
         Payment payment = paymentRepository.findByOrder(order)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
@@ -144,12 +139,8 @@ public class OrderService {
 
     @Transactional
     public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
-        Order order = orderRepository.findByWithOrderItems(orderId)
+        Order order = orderRepository.findByIdAndMemberIdWithOrderItems(orderId, memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-
-        if (!order.getMember().getId().equals(memberId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN_ACCESS);
-        }
 
         if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
