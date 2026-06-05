@@ -53,6 +53,27 @@ public class PaymentCommandService {
         // restoreStock(order);
     }
 
+    @Transactional
+    public void cancelPayment(Long orderId) {
+        Payment payment = paymentRepository.findByOrderIdWithOrderForUpdate(orderId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        if (payment.getStatus() == PaymentStatus.CANCELED) {
+            return;
+        }
+
+        if (payment.getStatus() != PaymentStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        }
+
+        payment.markAsCanceled();
+
+        // TODO: 주문 상태 CANCELED 변경
+        // orderService.cancelOrder(payment.getOrder());
+
+        // TODO: 환불/포인트 환급/적립 포인트 회수는 환불 담당 영역
+    }
+
     /**
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
      *   2) 결제 상태 → COMPLETED

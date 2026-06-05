@@ -30,7 +30,11 @@ public enum ErrorCode {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_007", "결제 금액이 불일치합니다."),
     PAYMENT_ALREADY_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT_008", "이미 실패한 결제입니다."),
     PAYMENT_ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "PAYMENT_009", "이미 취소된 결제입니다."),
-    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_00", "주문 금액보다 많이 사용할 수 없습니다.");
+    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_010", "주문 금액보다 많이 사용할 수 없습니다."),
+
+    // Webhook
+    WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_001", "주문 금액보다 많이 사용할 수 없습니다."),
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 인증이 안되었습니다.");
 
     private final HttpStatus status;
     private final String code;
