@@ -272,15 +272,13 @@ public class RefundService {
 
         if (afterRefundAmount.equals(payment.getTotalAmount())) {
             payment.changeStatus(PaymentStatus.REFUNDED);
-            order.refund();
+            order.cancel();
             return;
         }
 
         if (payment.getStatus() == PaymentStatus.COMPLETED) {
             payment.changeStatus(PaymentStatus.PARTIAL_REFUNDED);
         }
-
-        order.partialRefund();
     }
 
     /**
