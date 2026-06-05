@@ -1,7 +1,7 @@
 package com.paymentsystemproject.domain.infra.portone.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponse;
+import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponseDto;
 
 /**
  * PortOne V2 결제 조회 응답 (GET /payments/{paymentId})
@@ -33,8 +33,8 @@ public record PortOnePaymentResponseDto(
     PaymentAmount amount                  // 결제 금액 세부 정보
 ) {
 
-    public PaymentGatewayResponse toGatewayResponse() {
-        return new PaymentGatewayResponse(
+    public PaymentGatewayResponseDto toGatewayResponse() {
+        return new PaymentGatewayResponseDto(
             id,
             status,
             amount.total()

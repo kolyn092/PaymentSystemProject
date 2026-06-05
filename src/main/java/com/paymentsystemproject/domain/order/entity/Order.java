@@ -80,4 +80,13 @@ public class Order extends BaseTimeEntity {
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
     }
+
+    /**
+     * 주문을 완료 상태로 변경합니다.
+     * 결제 확정 (PAID) 시점에 호출되어야 합니다.
+     */
+
+    public void complete() {
+        this.status = OrderStatus.COMPLETED;
+    }
 }
