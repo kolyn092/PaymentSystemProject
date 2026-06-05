@@ -93,7 +93,7 @@ public class RefundService {
             totalPgRefundAmount
         );
 
-        changePaymentStatus(payment, totalRefundAmount);
+        changeRefundStatus(order, payment, totalRefundAmount);
 
         Refund refund = saveRefund(
             payment,
@@ -259,22 +259,29 @@ public class RefundService {
     /**
      * 이번 환불 이후 결제 상태를 변경한다.
      */
-    private void changePaymentStatus(Payment payment, Integer totalRefundAmount) {
-        Integer alreadyRefundedAmount = refundRepository.sumRefundAmountByPaymentId(payment.getId());
-        Integer cumulativeRefundAmount = alreadyRefundedAmount + totalRefundAmount;
+    private void changeRefundStatus(
+        Order order,
+        Payment payment,
+        Integer totalRefundAmount
+    ) {
+        Integer alreadyRefundAmount = refundRepository.sumRefundAmountByPaymentId(payment.getId());
+        Integer afterRefundAmount = alreadyRefundAmount + totalRefundAmount;
 
-        if (cumulativeRefundAmount > payment.getTotalAmount()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        if (afterRefundAmount > payment.getTotalAmount()) {
+            throw new BusinessException(ErrorCode.EXCEED_REFUNDABLE_QUANTITY);
         }
 
-        if (cumulativeRefundAmount.equals(payment.getTotalAmount())) {
+        if (afterRefundAmount.equals(payment.getTotalAmount())) {
             payment.changeStatus(PaymentStatus.REFUNDED);
+            order.refund();
             return;
         }
 
         if (payment.getStatus() == PaymentStatus.COMPLETED) {
             payment.changeStatus(PaymentStatus.PARTIAL_REFUNDED);
         }
+
+        order.partialRefund();
     }
 
     /**

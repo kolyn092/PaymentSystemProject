@@ -89,4 +89,20 @@ public class Order extends BaseTimeEntity {
     public void complete() {
         this.status = OrderStatus.COMPLETED;
     }
+
+    /**
+     * 주문을 부분 환불 상태로 변경합니다.
+     * 부분 환불이 발생한 경우 호출됩니다.
+     */
+    public void partialRefund() {
+        this.status = OrderStatus.PARTIAL_REFUNDED;
+    }
+
+    /**
+     * 주문을 전체 환불 상태로 변경합니다.
+     * 주문 금액 전체가 환불된 경우 호출됩니다.
+     */
+    public void refund() {
+        this.status = OrderStatus.REFUNDED;
+    }
 }
