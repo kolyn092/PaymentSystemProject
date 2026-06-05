@@ -34,7 +34,7 @@ public enum ErrorCode {
 
     // Webhook
     WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_001", "주문 금액보다 많이 사용할 수 없습니다."),
-    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 인증이 안되었습니다.");
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 서명 인증에 실패하였습니다.");
 
     private final HttpStatus status;
     private final String code;

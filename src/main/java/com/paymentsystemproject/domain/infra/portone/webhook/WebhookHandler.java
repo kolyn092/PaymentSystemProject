@@ -85,11 +85,9 @@ public class WebhookHandler {
      */
     private void handlePaid(Long eventId, String portonePaymentId) {
         // [보안] PG 페이로드는 신뢰하지 않고 실체를 직접 조회한다.
-        //        외부 API 호출이므로 트랜잭션 밖에서 실행된다.
         PaymentGatewayResponseDto pg = paymentGateway.getPayment(portonePaymentId);
 
         // PG 실체 상태가 PAID가 아니면 처리 대상이 아님
-        // (예: 웹훅은 Paid로 왔는데 실체는 이미 CANCELLED로 바뀐 경우)
         if (!"PAID".equals(pg.status())) {
             webhookEventService.markIgnored(eventId, "PG 상태가 PAID가 아님: " + pg.status());
             return;
@@ -97,7 +95,6 @@ public class WebhookHandler {
 
         Payment payment = paymentService.findByPortonePaymentId(portonePaymentId);
 
-        // [보안] 금액 조작 방어
         // 우리가 생성한 결제 금액(DB)과 PG가 실제로 승인한 금액이 다르면
         // 프론트엔드가 조작되었거나 외부 공격이 있었다는 뜻 -> FAILED로 기록
         if (pg.totalAmount() != payment.getPgAmount()) {
@@ -106,7 +103,6 @@ public class WebhookHandler {
             return;
         }
 
-        // [중복 처리 방지]
         // -> Client 경로와 웹훅 경로가 서로 다른 시점에 도착해도 결과는 한 번만 반영된다.
         if (payment.getStatus() == PaymentStatus.PENDING) {
             paymentCommandService.completePayment(payment.getOrder().getId());
