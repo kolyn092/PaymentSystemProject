@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.global.entity.BaseTimeEntity;
+import com.paymentsystemproject.global.error.BusinessException;
+import com.paymentsystemproject.global.error.ErrorCode;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -82,10 +84,17 @@ public class Order extends BaseTimeEntity {
 
     /**
      * 주문을 취소 상태로 변경합니다.
-     * 결제 대기 (PENDING_PAYMENT) 상태인 경우에만 호출되어야 합니다.
+     * 결제 대기 상태가 아닌 경우 예외를 던지며, 취소 시 선차감했던 재고를 복구합니다.
      */
 
     public void cancel() {
+        if (this.status != OrderStatus.PENDING_PAYMENT) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        for (OrderItem orderItem : this.orderItems) {
+            orderItem.getProduct().restoreStock(orderItem.getQuantity());
+        }
         this.status = OrderStatus.CANCELLED;
     }
 

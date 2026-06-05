@@ -11,6 +11,7 @@ import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 import com.paymentsystemproject.domain.cartitem.service.CartService;
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.service.MemberService;
+import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
@@ -21,6 +22,7 @@ import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.service.OrderService;
 import com.paymentsystemproject.domain.payment.entity.Payment;
+import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.service.PaymentService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -136,6 +138,23 @@ public class OrderFacade {
         Payment payment = paymentService.findByOrderIdWithOrder(orderId);
 
         return GetOrderDetailResponseDto.from(order, payment);
+    }
+
+    /**
+     * 결제 대기 상태인 주문을 취소합니다.
+     * 주문 취소 후 결제 상태를 실패로 변경합니다.
+     *
+     * @param memberId 회원 ID
+     * @param orderId 취소할 주문 ID
+     * @return 취소된 주문 정보
+     */
+
+    public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
+        Order order = orderService.cancelOrder(memberId, orderId);
+        Payment payment = paymentService.findByOrderIdWithOrder(orderId);
+        payment.changeStatus(PaymentStatus.FAILED);
+
+        return CancelOrderResponseDto.from(order);
     }
 
     /**

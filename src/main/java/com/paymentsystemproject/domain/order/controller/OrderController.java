@@ -124,6 +124,6 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.cancelOrder(userDetails.getMemberId(), orderId)));
+            .body(ApiResponse.ok(orderFacade.cancelOrder(userDetails.getMemberId(), orderId)));
     }
 }

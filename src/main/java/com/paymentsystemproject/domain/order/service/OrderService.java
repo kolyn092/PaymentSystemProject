@@ -11,14 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.member.entity.Member;
-import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
-import com.paymentsystemproject.domain.order.entity.OrderStatus;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
-import com.paymentsystemproject.domain.payment.entity.Payment;
-import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -83,33 +79,19 @@ public class OrderService {
 
     /**
      * 결제 대기 상태인 주문을 취소합니다.
-     * orderId와 memberId를 함께 조회하여 본인 부문만 취소할 수 있도록 보장합니다.
-     * 취소 시 선차감했던 재고를 복구하고, 결제 상태를 FAILED로 변경합니다.
+     * 취소 시 선차감했던 재고를 복구합니다.
      *
      * @param memberId 회원 ID
      * @param orderId 취소할 주문 ID
-     * @return 취소된 주문 정보
+     * @return 취소된 주문 엔티티
      */
 
     @Transactional
-    public CancelOrderResponseDto cancelOrder(Long memberId, Long orderId) {
-        Order order = orderRepository.findByIdAndMemberIdWithOrderItems(orderId, memberId)
+    public Order cancelOrder(Long memberId, Long orderId) {
+        Order order = orderRepository.findByIdAndMemberIdWithOrderItems(memberId, orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-
-        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
-            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
-        }
-
-        Payment payment = paymentRepository.findByOrder(order)
-            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        for (OrderItem orderItem : order.getOrderItems()) {
-            orderItem.getProduct().restoreStock(orderItem.getQuantity());
-        }
-        payment.changeStatus(PaymentStatus.FAILED);
-
         order.cancel();
 
-        return CancelOrderResponseDto.from(order);
+        return order;
     }
 }
