@@ -19,8 +19,6 @@ import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
-import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
-import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.entity.OrderStatus;
@@ -50,45 +48,6 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
-
-    /**
-     * 장바구니에 담긴 상품들을 결제 직전의 '주문서' 형태로 미리보기 위한 기능입니다.
-     * 장바구니 상품 ID 목록이 없으면 전체 장바구니 항목을 조회하며, 실시간 가격이 반영됩니다.
-     *
-     * @param memberId 회원 ID
-     * @param cartItemIds 결제할 장바구니 항목 ID 목록 (선택)
-     * @return 결제 화면 구성에 필요한 주문서 정보 (총액, 상품 목록 등)
-     */
-
-    @Transactional(readOnly = true)
-    public GetOrderPreviewResponseDto getOrderPreview(Long memberId, List<Long> cartItemIds) {
-        Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-
-        List<CartItem> cartItems;
-        if (cartItemIds == null || cartItemIds.isEmpty()) {
-            cartItems = cartItemRepository.findByMemberId(memberId);
-        } else {
-            cartItems = cartItemRepository.findByMemberIdAndIdIn(memberId, cartItemIds);
-            if (cartItems.size() != cartItemIds.size()) {
-                throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
-            }
-        }
-
-        if (cartItems.isEmpty()) {
-            throw new BusinessException(ErrorCode.CART_EMPTY);
-        }
-
-        List<GetOrderPreviewItemDto> items = cartItems.stream()
-            .map(GetOrderPreviewItemDto::from)
-            .toList();
-
-        int totalAmount = items.stream()
-            .mapToInt(GetOrderPreviewItemDto::subtotal)
-            .sum();
-
-        return GetOrderPreviewResponseDto.of(items, totalAmount, member.getPointBalance());
-    }
 
     /**
      * 장바구니에서 선택한 상품들로 주문을 생성하고 결제 정보를 초기화합니다.

@@ -20,7 +20,7 @@ import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
-import com.paymentsystemproject.domain.order.service.OrderService;
+import com.paymentsystemproject.domain.order.facade.OrderFacade;
 import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
 
@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderFacade orderFacade;
 
     /**
      * 주문서 미리보기 조회
@@ -54,7 +54,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(required = false) List<Long> cartItemIds) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderPreview(userDetails.getMemberId(), cartItemIds)));
+            .body(ApiResponse.ok(orderFacade.getOrderPreview(userDetails.getMemberId(), cartItemIds)));
     }
 
     /**
