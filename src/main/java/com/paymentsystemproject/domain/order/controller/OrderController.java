@@ -107,7 +107,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderDetail(userDetails.getMemberId(), orderId)));
+            .body(ApiResponse.ok(orderFacade.getOrderDetail(userDetails.getMemberId(), orderId)));
     }
 
     /**

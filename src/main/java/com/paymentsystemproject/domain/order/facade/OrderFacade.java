@@ -13,6 +13,7 @@ import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.service.MemberService;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
+import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
@@ -118,6 +119,23 @@ public class OrderFacade {
     public Page<GetOrderListResponseDto> getOrderList(Long memberId, int page, int size) {
         Member member = memberService.findById(memberId);
         return orderService.getOrderList(member, page, size);
+    }
+
+    /**
+     * 특정 주문의 상세 정보를 조회합니다.
+     * orderId와 memberId를 함께 조회하여 본인 주문만 접근할 수 있도록 보장합니다.
+     *
+     * @param memberId 회원 ID
+     * @param orderId 조회할 주문 ID
+     * @return 주문 상세 정보 및 결제 정보
+     */
+
+    @Transactional(readOnly = true)
+    public GetOrderDetailResponseDto getOrderDetail(Long memberId, Long orderId) {
+        Order order = orderService.getOrderDetail(memberId, orderId);
+        Payment payment = paymentService.findByOrderIdWithOrder(orderId);
+
+        return GetOrderDetailResponseDto.from(order, payment);
     }
 
     /**

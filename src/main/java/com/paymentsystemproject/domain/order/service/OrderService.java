@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
-import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
@@ -70,24 +69,15 @@ public class OrderService {
     }
 
     /**
-     * 특정 주문의 상세 정보를 조회합니다.
-     * orderId와 memberId를 함께 조회하여 본인 주문만 접근할 수 있도록 보장하며,
-     * JOIN FETCH를 사용해 함께 주문 항목을 한 번에 가져와 N+1 문제를 방지합니다.
+     * 주문 ID와 회원 ID로 주문과 주문 항목을 함께 조회합니다.
      *
-     * @param memberId 회원 ID
      * @param orderId 주문 ID
-     * @return 주문 상세 정보 및 결제 정보
+     * @param memberId 회원 ID
+     * @return 주문 항목이 포함된 주문 엔티티
      */
 
-    @Transactional(readOnly = true)
-    public GetOrderDetailResponseDto getOrderDetail(Long memberId, Long orderId) {
-        Order order = orderRepository.findByIdAndMemberIdWithOrderItems(orderId, memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-
-        Payment payment = paymentRepository.findByOrder(order)
-            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        return GetOrderDetailResponseDto.from(order, payment);
+    public Order getOrderDetail(Long memberId, Long orderId) {
+        return orderRepository.findByIdAndMemberIdWithOrderItems(memberId, orderId);
     }
 
     /**
