@@ -31,7 +31,6 @@ public class PaymentService {
 
         // pgAmount 계산
         Integer pgAmount = order.getTotalAmount() - usedPoint;
-        // todo - 포인트 전액 결제 구현, 적립 포인트 0원
 
         Payment payment = Payment.createPendingPayment(order, portonePaymentId, order.getTotalAmount(), usedPoint,
             pgAmount);
@@ -50,6 +49,14 @@ public class PaymentService {
     public Payment findByOrderIdAndMemberId(Long orderId, Long memberId) {
         return paymentRepository.findByOrderIdAndMemberId(orderId, memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    private int earnedPoint(int pgAmount) {
+        if (pgAmount == 0) {
+            return 0;
+        }
+
+        return pgAmount / 100;
     }
 
     private void validPoint(Integer availablePoint, Integer totalAmount, Integer point) {

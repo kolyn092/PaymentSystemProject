@@ -107,4 +107,8 @@ public class Payment extends BaseTimeEntity {
         this.status = nextStatus;
     }
 
+    public boolean isPointOnlyPayment() {
+        return this.pgAmount == 0;
+    }
+
 }

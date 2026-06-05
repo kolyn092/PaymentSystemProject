@@ -3,11 +3,15 @@ package com.paymentsystemproject.domain.payment.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.paymentsystemproject.domain.cartitem.service.CartService;
 import com.paymentsystemproject.domain.order.entity.Order;
+import com.paymentsystemproject.domain.order.service.OrderService;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
+import com.paymentsystemproject.domain.point.service.PointService;
+import com.paymentsystemproject.domain.product.service.ProductService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -18,8 +22,10 @@ import lombok.RequiredArgsConstructor;
 public class PaymentCommandService {
 
     private final PaymentRepository paymentRepository;
-    // private final OrderService orderService;
-    // private final ProductService productService;
+    private final OrderService orderService;
+    private final ProductService productService;
+    private final PointService pointService;
+    private final CartService cartService;
 
     /**
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
@@ -47,7 +53,7 @@ public class PaymentCommandService {
         payment.markAsFailed();
 
         // 주문 상태를 취소로 변경
-        // orderService.cancelOrder(order);
+        order.cancel();
 
         // 재고 원상 복구
         // restoreStock(order);
@@ -96,12 +102,33 @@ public class PaymentCommandService {
 
         // 6) 포인트 적립 기록 생성
 
-        // 7) 포인트 잔액 갱신
-
         // 8) 장바구니 초기화
+        cartService.removeCart(order.getMember().getId());
 
         // 9) dto 생성
         return PaymentConfirmResponseDto.of(payment, "결제가 완료되었습니다.");
+    }
+
+    // Order 상태 COMPLETED
+    // Payment 상태 COMPLETED
+    // 포인트 차감
+    // 포인트 사용 원장 생성
+    // 장바구니 초기화
+    // 적립 포인트는 없음
+    @Transactional
+    public PaymentConfirmResponseDto confirmPointOnlyPayment(Payment payment) {
+        // order 상태 completed
+        //payment.getOrder().
+
+        // payment 상태 completed
+        payment.markAsCompleted();
+
+        // 포인트 차감
+        //payment.getOrder().getMember().
+
+        // 포인트 사용 원장 생성
+
+        return PaymentConfirmResponseDto.of(payment, "포인트 전액 결제가 완료되었습니다.");
     }
 
     /**
