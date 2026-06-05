@@ -10,13 +10,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 import com.paymentsystemproject.domain.cartitem.repository.CartItemRepository;
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.repository.MemberRepository;
 import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
-import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
-import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
@@ -50,52 +47,18 @@ public class OrderService {
     private final PaymentService paymentService;
 
     /**
-     * 장바구니에서 선택한 상품들로 주문을 생성하고 결제 정보를 초기화합니다.
-     * 주문 번호는 UUID로 생성되며, 주문 항목은 장바구니 상품 정보를 기반으로 저장됩니다.
-     * 결제 완료 전 재고를 선차감하여 동시 주문으로 인한 초과 판매를 방지합니다.
+     * 주문을 생성하고 저장합니다.
      *
-     * @param memberId 회원 ID
-     * @param requestDto 주문할 장바구니 항목 ID 목록 및 사용할 포인트
-     * @return 생성된 주문 정보 및 결제 준비 정보
+     * @param member 회원 엔티티
+     * @param orderItems 주문 항목 목록
+     * @param totalAmount 주문 총액
+     * @return 생성된 주문 엔티티
      */
 
     @Transactional
-    public CreateOrderResponseDto createOrder(Long memberId, CreateOrderRequestDto requestDto) {
-        Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-
-        List<CartItem> cartItems = cartItemRepository.findByMemberIdAndIdIn(memberId, requestDto.cartItemIds());
-        if (cartItems.size() != requestDto.cartItemIds().size()) {
-            throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
-        }
-
-        Integer totalAmount = cartItems.stream()
-            .mapToInt(cartItem -> cartItem.getProduct().getPrice() * cartItem.getQuantity())
-            .sum();
-
-        String orderNumber = UUID.randomUUID().toString();
-
-        Order order = new Order(member, orderNumber, totalAmount);
-        orderRepository.save(order);
-
-        for (CartItem cartItem : cartItems) {
-            OrderItem orderItem = new OrderItem(
-                order,
-                cartItem.getProduct(),
-                cartItem.getProduct().getName(),
-                cartItem.getProduct().getPrice(),
-                cartItem.getQuantity()
-            );
-            orderItemRepository.save(orderItem);
-        }
-
-        for (CartItem cartItem : cartItems) {
-            cartItem.getProduct().decreaseStock(cartItem.getQuantity());
-        }
-
-        Payment payment = paymentService.createPayment(order, requestDto.usePoint(), member.getPointBalance());
-
-        return CreateOrderResponseDto.from(order, payment);
+    public Order createOrder(Member member, List<OrderItem> orderItems, Integer totalAmount) {
+        Order order = new Order(member, UUID.randomUUID().toString(), totalAmount, orderItems);
+        return orderRepository.save(order);
     }
 
     /**

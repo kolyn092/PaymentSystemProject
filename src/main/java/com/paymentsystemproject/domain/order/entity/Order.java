@@ -64,12 +64,20 @@ public class Order extends BaseTimeEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    public Order(Member member, String orderNumber, Integer totalAmount) {
+    public Order(Member member, String orderNumber, Integer totalAmount, List<OrderItem> orderItems) {
         this.member = member;
         this.orderNumber = orderNumber;
         this.totalAmount = totalAmount;
         // 주문 생성 시 결제 대기 상태로 초기화
         this.status = OrderStatus.PENDING_PAYMENT;
+        for (OrderItem orderItem : orderItems) {
+            addOrderitem(orderItem);
+        }
+    }
+
+    public void addOrderitem(OrderItem orderItem) {
+        this.orderItems.add(orderItem);
+        orderItem.setOrder(this);
     }
 
     /**

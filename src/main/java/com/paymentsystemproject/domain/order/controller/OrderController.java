@@ -71,7 +71,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody CreateOrderRequestDto requestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(orderService.createOrder(userDetails.getMemberId(), requestDto)));
+            .body(ApiResponse.ok(orderFacade.createOrder(userDetails.getMemberId(), requestDto)));
     }
 
     /**
