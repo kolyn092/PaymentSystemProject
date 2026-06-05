@@ -11,6 +11,7 @@ import com.paymentsystemproject.domain.payment.dto.PaymentConfirmRequestDto;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.facade.PaymentFacade;
 import com.paymentsystemproject.global.response.ApiResponse;
+import com.paymentsystemproject.global.security.CustomUserDetails;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,9 @@ public class PaymentController {
 
     @PostMapping("/confirm")
     public ResponseEntity<ApiResponse<PaymentConfirmResponseDto>> confirmPayment(
-        @AuthenticationPrincipal Long memberId,
+        @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody PaymentConfirmRequestDto request) {
-        return ResponseEntity.ok(ApiResponse.ok(paymentFacade.confirmPayment(memberId, request)));
+        return ResponseEntity.ok(ApiResponse.ok(paymentFacade.confirmPayment(userDetails.getMemberId(), request)));
     }
 
 }
