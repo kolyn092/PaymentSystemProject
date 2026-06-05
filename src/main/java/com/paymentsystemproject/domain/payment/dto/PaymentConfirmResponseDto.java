@@ -19,7 +19,7 @@ public record PaymentConfirmResponseDto(
             payment.getOrder().getId(),
             payment.getTotalAmount(),
             payment.getStatus().name(),
-            payment.getOrder().getStatus(),
+            payment.getOrder().getStatus().name(),
             message
         );
     }
