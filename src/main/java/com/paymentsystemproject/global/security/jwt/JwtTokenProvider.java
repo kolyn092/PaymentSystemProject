@@ -12,6 +12,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -21,6 +22,8 @@ public class JwtTokenProvider {
 	private static final String CLAIM_EMAIL = "email";
 
 	private final SecretKey key;
+
+	@Getter
 	private final long expiration;
 
 	public JwtTokenProvider(
@@ -70,7 +73,4 @@ public class JwtTokenProvider {
 			.getPayload();
 	}
 
-	public long getExpiration() {
-		return expiration;
-	}
 }
