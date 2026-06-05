@@ -5,13 +5,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.cartitem.service.CartService;
 import com.paymentsystemproject.domain.order.entity.Order;
-import com.paymentsystemproject.domain.order.service.OrderService;
+import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
-import com.paymentsystemproject.domain.point.service.PointService;
-import com.paymentsystemproject.domain.product.service.ProductService;
+import com.paymentsystemproject.domain.product.entity.Product;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -22,9 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class PaymentCommandService {
 
     private final PaymentRepository paymentRepository;
-    private final OrderService orderService;
-    private final ProductService productService;
-    private final PointService pointService;
     private final CartService cartService;
 
     /**
@@ -33,6 +29,7 @@ public class PaymentCommandService {
      *   3) 주문 상태 → CANCELED
      *   4) 주문에 포함된 상품들의 재고를 원래대로 복구
      *   5) 장바구니 유지
+     *
      */
     @Transactional
     public void failPayment(Long orderId) {
@@ -56,10 +53,31 @@ public class PaymentCommandService {
         order.cancel();
 
         // 재고 원상 복구
-        // restoreStock(order);
+        restoreStock(order);
     }
 
-    /**
+    @Transactional
+    public void cancelPayment(Long orderId) {
+        Payment payment = paymentRepository.findByOrderIdWithOrderForUpdate(orderId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        Order order = payment.getOrder();
+
+        if (payment.getStatus() == PaymentStatus.CANCELED) {
+            return;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        }
+
+        payment.markAsCanceled();
+        order.cancel();
+        restoreStock(order);
+    }
+
+    /**  성공 + 금액 일치
+     *
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
      *   2) 결제 상태 → COMPLETED
      *   3) 주문 상태 → CONFIRMED
@@ -132,5 +150,13 @@ public class PaymentCommandService {
         cartService.removeCart(payment.getOrder().getMember().getId());
 
         return PaymentConfirmResponseDto.of(payment, "포인트 전액 결제가 완료되었습니다.");
+    }
+
+    //재고 원상복구 메서드
+    private void restoreStock(Order order) {
+        for (OrderItem orderItem : order.getOrderItems()) {
+            Product product = orderItem.getProduct();
+            product.restoreStock(orderItem.getQuantity());
+        }
     }
 }

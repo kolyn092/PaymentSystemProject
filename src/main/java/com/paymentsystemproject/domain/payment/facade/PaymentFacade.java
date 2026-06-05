@@ -3,6 +3,7 @@ package com.paymentsystemproject.domain.payment.facade;
 import org.springframework.stereotype.Component;
 
 import com.paymentsystemproject.domain.order.entity.Order;
+import com.paymentsystemproject.domain.order.entity.OrderStatus;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmRequestDto;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
@@ -72,6 +73,12 @@ public class PaymentFacade {
         return paymentCommandService.completePayment(order.getId());
     }
 
+    public void cancelPayment(Long memberId, Long orderId) {
+        Payment payment = paymentService.findByOrderIdAndMemberId(orderId, memberId);
+
+        paymentCommandService.cancelPayment(payment.getOrder().getId());
+    }
+
     // 기본 유효성 검증
     private PaymentConfirmResponseDto validateConfirmRequest(PaymentConfirmRequestDto request, Payment payment,
         Order order) {
@@ -114,10 +121,9 @@ public class PaymentFacade {
 
     // 주문 상태 검증
     private void validateOrderStatus(Order order) {
-        // TODO - 추후 주석 삭제 예정
-        // if (order.getStatus() != OrderStatus.PENDING) {
-        //     throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
-        // }
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
     }
 
     // PG 결제 상태가 완료인지 확인

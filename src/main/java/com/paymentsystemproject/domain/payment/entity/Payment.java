@@ -107,6 +107,10 @@ public class Payment extends BaseTimeEntity {
         this.status = nextStatus;
     }
 
+    public void markAsCanceled() {
+        changeStatus(PaymentStatus.CANCELED);
+    }
+
     public boolean isPointOnlyPayment() {
         return this.pgAmount == 0;
     }
