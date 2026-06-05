@@ -77,7 +77,8 @@ public class OrderService {
      */
 
     public Order getOrderDetail(Long memberId, Long orderId) {
-        return orderRepository.findByIdAndMemberIdWithOrderItems(memberId, orderId);
+        return orderRepository.findByIdAndMemberIdWithOrderItems(memberId, orderId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
     }
 
     /**
