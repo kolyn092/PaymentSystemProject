@@ -10,21 +10,17 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.paymentsystemproject.domain.cartitem.repository.CartItemRepository;
 import com.paymentsystemproject.domain.member.entity.Member;
-import com.paymentsystemproject.domain.member.repository.MemberRepository;
 import com.paymentsystemproject.domain.order.dto.CancelOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.entity.OrderStatus;
-import com.paymentsystemproject.domain.order.repository.OrderItemRepository;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
-import com.paymentsystemproject.domain.payment.service.PaymentService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -37,14 +33,11 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final MemberRepository memberRepository;
-    private final CartItemRepository cartItemRepository;
     private final PaymentRepository paymentRepository;
-    private final PaymentService paymentService;
 
     /**
      * 주문을 생성하고 저장합니다.
@@ -64,19 +57,14 @@ public class OrderService {
     /**
      * 로그인한 회원의 주문 목록을 최신순으로 페이징하여 반환합니다.
      *
-     * @param memberId 회원 ID
+     * @param member 회원 엔티티
      * @param page 페이지 번호 (0부터 시작)
      * @param size 페이지당 항목 수
      * @return 주문 목록 (페이징)
      */
 
-    @Transactional(readOnly = true)
-    public Page<GetOrderListResponseDto> getOrderList(Long memberId, int page, int size) {
-        Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
-
+    public Page<GetOrderListResponseDto> getOrderList(Member member, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
         return orderRepository.findByMember(member, pageable)
             .map(GetOrderListResponseDto::from);
     }

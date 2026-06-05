@@ -3,6 +3,7 @@ package com.paymentsystemproject.domain.order.facade;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.service.MemberService;
 import com.paymentsystemproject.domain.order.dto.CreateOrderRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
+import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewItemDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
@@ -101,6 +103,21 @@ public class OrderFacade {
         Payment payment = paymentService.createPayment(order, requestDto.usePoint(), member.getPointBalance());
 
         return CreateOrderResponseDto.from(order, payment);
+    }
+
+    /**
+     * 로그인한 회원의 주문 목록을 최신순으로 페이징하여 반환합니다.
+     *
+     * @param memberId 회원 ID
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지당 항목 수
+     * @return 주문 목록 (페이징)
+     */
+
+    @Transactional(readOnly = true)
+    public Page<GetOrderListResponseDto> getOrderList(Long memberId, int page, int size) {
+        Member member = memberService.findById(memberId);
+        return orderService.getOrderList(member, page, size);
     }
 
     /**

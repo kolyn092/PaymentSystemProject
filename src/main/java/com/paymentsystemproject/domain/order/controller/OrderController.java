@@ -90,7 +90,7 @@ public class OrderController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderList(userDetails.getMemberId(), page, size)));
+            .body(ApiResponse.ok(orderFacade.getOrderList(userDetails.getMemberId(), page, size)));
     }
 
     /**
