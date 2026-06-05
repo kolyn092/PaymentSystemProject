@@ -32,7 +32,14 @@ public enum ErrorCode {
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_001", "보유 포인트가 부족합니다."),
     MINUS_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_002", "포인트는 음수일 수 없습니다."),
     PAYMENT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_003", "변경할 수 없는 결제 상태입니다."),
-    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_00", "주문 금액보다 많이 사용할 수 없습니다.");
+    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_004", "주문 금액보다 많이 사용할 수 없습니다."),
+
+    // Order
+    FORBIDDEN_ACCESS(HttpStatus.FORBIDDEN, "ORDER_001", "접근 권한이 없습니다."),
+    CART_EMPTY(HttpStatus.BAD_REQUEST, "ORDER_002", "장바구니가 비어 있습니다."),
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_003", "주문을 찾을 수 없습니다."),
+    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "ORDER_004", "유효하지 않은 주문 상태입니다."),
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_005", "결제 정보를 찾을 수 없습니다.");
 
 	private final HttpStatus status;
 	private final String code;
