@@ -7,7 +7,7 @@ import com.paymentsystemproject.domain.infra.portone.config.PortOneProperties;
 import com.paymentsystemproject.domain.infra.portone.dto.PortOneCancelRequestDto;
 import com.paymentsystemproject.domain.infra.portone.dto.PortOnePaymentResponseDto;
 import com.paymentsystemproject.domain.payment.port.PaymentGateway;
-import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponse;
+import com.paymentsystemproject.domain.payment.port.PaymentGatewayResponseDto;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ public class PortOneClient implements PaymentGateway {
     private final PortOneProperties portOneProperties;
 
     @Override
-    public PaymentGatewayResponse getPayment(String paymentId) {
+    public PaymentGatewayResponseDto getPayment(String paymentId) {
         // paymentId logging
         log.info("PortOne 결제 조회: {}", paymentId);
 
