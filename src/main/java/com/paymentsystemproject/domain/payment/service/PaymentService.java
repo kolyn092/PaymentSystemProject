@@ -46,6 +46,12 @@ public class PaymentService {
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
     }
 
+    @Transactional(readOnly = true)
+    public Payment findByOrderIdAndMemberId(Long orderId, Long memberId) {
+        return paymentRepository.findByOrderIdAndMemberId(orderId, memberId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
     private void validPoint(Integer availablePoint, Integer totalAmount, Integer point) {
         // NOTE - dto 에서 처리를 한 경우 굳이 사용하지 않으셔도 됩니다.
         if (point < 0) { // 사용할 포인트가 0미만인 경우

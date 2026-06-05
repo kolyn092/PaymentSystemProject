@@ -1,6 +1,7 @@
 package com.paymentsystemproject.domain.payment.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
@@ -10,7 +11,6 @@ import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service

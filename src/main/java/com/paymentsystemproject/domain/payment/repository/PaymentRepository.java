@@ -27,6 +27,19 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             join fetch p.order o
             where o.id = :orderId
         """)
-    Optional<Payment> findByOrderIdWithOrderForUpdate(Long orderId);
+    Optional<Payment> findByOrderIdWithOrderForUpdate(@Param("orderId") Long orderId);
+
+    // order과 member 소유권 같이 검증
+    @Query("""
+            select p
+            from Payment p
+            join fetch p.order o
+            where o.id = :orderId
+              and o.member.id = :memberId
+        """)
+    Optional<Payment> findByOrderIdAndMemberId(
+        Long orderId,
+        Long memberId
+    );
 
 }
