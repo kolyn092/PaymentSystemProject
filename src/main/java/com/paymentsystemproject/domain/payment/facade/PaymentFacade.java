@@ -30,54 +30,51 @@ public class PaymentFacade {
     /**
      * 결제 승인 메인 흐름
      *
-     *      1. Payment 조회
+     *      1. Payment 조회, 주문 소유권 검증
      *      2. Order 조회
-     *      3. 주문 소유권 검증
-     *      4. portOnePaymentId 일치 검증
-     *      5. 멱등성 검증
+     *      3. portOnePaymentId 일치 검증
+     *      4. 멱등성 검증
      *          - 이미 COMPLETED면 성공 응답 반환 또는 예외 처리
      *          - FAILED/CANCELED면 재승인 불가 예외
-     *      6. Order 상태 검증
+     *      5. Order 상태 검증
      *          - 결제 대기 상태인지 확인
-     *      7. Payment 상태 검증
+     *      6. Payment 상태 검증
      *          - PENDING 상태인지 검증
-     *      8. PortOne API로 실제 결제 조회
-     *      9. PortOne 결제 상태 검증
+     *      7. PortOne API로 실제 결제 조회
+     *      8. PortOne 결제 상태 검증
      *          - COMPLETED 상태인지 확인
-     *      10. 승인 금액 검증
+     *      9. 승인 금액 검증
      *          - PortOne 결제 금액 == payment.pgAmount
-     *      11. DB 결제/주문 상태 승인 처리
+     *      10. DB 결제/주문 상태 승인 처리
      */
     public PaymentConfirmResponseDto confirmPayment(Long memberId, PaymentConfirmRequestDto request) {
-        // 1. Payment 조회
-        Payment payment = paymentService.findByOrderIdWithOrder(request.orderId());
+        // 1, 3. Payment 조회 / 소유권 검증
+        Payment payment = paymentService.findByOrderIdAndMemberId(request.orderId(), memberId);
 
         // 2. Order 조회
         Order order = payment.getOrder();
 
-        // 3 ~ 7 유효성 검증
-        PaymentConfirmResponseDto response = validateConfirmRequest(memberId, request, payment, order);
+        // 3 ~ 6. 유효성 검증
+        PaymentConfirmResponseDto response = validateConfirmRequest(request, payment, order);
         if (response != null) {
             return response;
         }
 
-        // 8. PortOne API로 실제 결제 조회
+        // 7. PortOne API로 실제 결제 조회
         PaymentGatewayResponseDto pgPayment = paymentGateway.getPayment(payment.getPortonePaymentId());
 
-        // 9. PortOne 결제 상태 검증
+        // 8. PortOne 결제 상태 검증
         handleIfPgPaymentNotCompleted(payment, order, pgPayment);
 
-        // 10. 승인 금액 검증 - PortOne 결제 금액 == payment.pgAmount
+        // 9. 승인 금액 검증 - PortOne 결제 금액 == payment.pgAmount
         handleIfAmountMismatch(payment, order, pgPayment);
 
         return paymentCommandService.completePayment(order.getId());
     }
 
     // 기본 유효성 검증
-    private PaymentConfirmResponseDto validateConfirmRequest(Long memberId, PaymentConfirmRequestDto request,
-        Payment payment, Order order) {
-        // 3. 주문 소유권 검증
-        validateOwner(memberId, order);
+    private PaymentConfirmResponseDto validateConfirmRequest(PaymentConfirmRequestDto request, Payment payment,
+        Order order) {
 
         // 4. portOnePaymentId 일치 검증
         validatePortOnePaymentId(request, payment);
@@ -92,13 +89,6 @@ public class PaymentFacade {
         validateOrderStatus(order);
 
         return null;
-    }
-
-    private void validateOwner(Long memberId, Order order) {
-        if (!order.getMember().getId().equals(memberId)) {
-            // TODO - 추후 주석 삭제 예정
-            // throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
-        }
     }
 
     private void validatePortOnePaymentId(PaymentConfirmRequestDto request, Payment payment) {

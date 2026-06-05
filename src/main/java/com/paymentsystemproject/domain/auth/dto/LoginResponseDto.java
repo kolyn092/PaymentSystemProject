@@ -1,12 +1,12 @@
 package com.paymentsystemproject.domain.auth.dto;
 
-public record LoginResponse(
+public record LoginResponseDto(
 	String accessToken,
 	String tokenType,
 	long expiresIn
 ) {
-	public static LoginResponse of(String accessToken, long expiresInMillis) {
-		return new LoginResponse(
+	public static LoginResponseDto of(String accessToken, long expiresInMillis) {
+		return new LoginResponseDto(
 			accessToken,
 			"Bearer",
 			expiresInMillis / 1000

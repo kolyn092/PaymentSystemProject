@@ -4,10 +4,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.paymentsystemproject.domain.auth.dto.LoginRequest;
-import com.paymentsystemproject.domain.auth.dto.LoginResponse;
-import com.paymentsystemproject.domain.auth.dto.SignupRequest;
-import com.paymentsystemproject.domain.auth.dto.SignupResponse;
+import com.paymentsystemproject.domain.auth.dto.LoginRequestDto;
+import com.paymentsystemproject.domain.auth.dto.LoginResponseDto;
+import com.paymentsystemproject.domain.auth.dto.SignupRequestDto;
+import com.paymentsystemproject.domain.auth.dto.SignupResponseDto;
 import com.paymentsystemproject.domain.auth.repository.AuthRepository;
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.global.error.BusinessException;
@@ -32,7 +32,7 @@ public class AuthService {
 	}
 
 	@Transactional
-	public SignupResponse signup(SignupRequest request) {
+	public SignupResponseDto signup(SignupRequestDto request) {
 		if (authRepository.existsByEmail(request.email())) {
 			throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
 		}
@@ -46,11 +46,11 @@ public class AuthService {
 
 		Member saved = authRepository.save(member);
 
-		return SignupResponse.from(saved);
+		return SignupResponseDto.from(saved);
 	}
 
 	@Transactional(readOnly = true)
-	public LoginResponse login(LoginRequest request) {
+	public LoginResponseDto login(LoginRequestDto request) {
 		Member member = authRepository.findByEmail(request.email())
 			.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
@@ -60,6 +60,6 @@ public class AuthService {
 
 		String accessToken = jwtTokenProvider.createToken(member.getId(), member.getEmail());
 
-		return LoginResponse.of(accessToken, jwtTokenProvider.getExpiration());
+		return LoginResponseDto.of(accessToken, jwtTokenProvider.getExpiration());
 	}
 }

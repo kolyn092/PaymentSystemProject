@@ -20,6 +20,14 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_004", "이메일 또는 비밀번호가 올바르지 않습니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_005", "회원을 찾을 수 없습니다."),
 
+    //Product
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_051", "상품을 찾을 수 없습니다."),
+    INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "PRODUCT_052", "재고가 부족합니다."),
+
+    //CartItem
+    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_101", "장바구니 항목을 찾을 수 없습니다."),
+    INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "CART_102", "수량은 1 이상이어야 합니다."),
+    EXCEED_STOCK(HttpStatus.BAD_REQUEST, "CART_103", "상품의 재고 수량을 초과하여 담을 수 없습니다."),
     // Payment
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_001", "보유 포인트가 부족합니다."),
     MINUS_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_002", "포인트는 음수일 수 없습니다."),
@@ -34,7 +42,13 @@ public enum ErrorCode {
 
     // Webhook
     WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_001", "주문 금액보다 많이 사용할 수 없습니다."),
-    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 서명 인증에 실패하였습니다.");
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 서명 인증에 실패하였습니다."),
+
+    // Order
+    FORBIDDEN_ACCESS(HttpStatus.FORBIDDEN, "ORDER_001", "접근 권한이 없습니다."),
+    CART_EMPTY(HttpStatus.BAD_REQUEST, "ORDER_002", "장바구니가 비어 있습니다."),
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_003", "주문을 찾을 수 없습니다."),
+    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "ORDER_004", "유효하지 않은 주문 상태입니다.");
 
     private final HttpStatus status;
     private final String code;
