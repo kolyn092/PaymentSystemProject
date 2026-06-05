@@ -28,18 +28,20 @@ import com.paymentsystemproject.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 환불 요청을 처리하는 Service.
+ * 환불 DB 처리를 담당하는 Service.
  *
- * 주요 흐름:
- * 1. 주문 조회
- * 2. 본인 주문 검증
- * 3. 결제 정보 조회
- * 4. 환불 가능 상태 검증
- * 5. 환불 상품별 금액 계산
- * 6. 환불 기록 저장
- * 7. 재고 복구
- * 8. 포인트 반환 / 적립 포인트 회수
- * 9. 결제 상태 변경
+ * 역할:
+ * - 주문 / 결제 조회
+ * - 환불 가능 여부 검증
+ * - 환불 금액 계산
+ * - Refund / RefundItem 저장
+ * - 재고 복구
+ * - 포인트 반환 / 적립 포인트 회수
+ * - 결제 상태 변경
+ *
+ * 중요:
+ * - 이 Service는 DB 트랜잭션 안에서 처리할 작업만 담당한다.
+ * - 실제 PG 취소 API 호출은 Facade에서 트랜잭션 종료 후 수행한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -54,48 +56,41 @@ public class RefundService {
     private final PointRepository pointRepository;
 
     /**
-     * 환불 생성 메인 메서드.
+     * 환불 DB 처리 메인 메서드.
      *
-     * Controller에서 로그인 회원 ID, 주문 ID, 환불 요청 DTO를 받아 호출한다.
+     * 이 메서드 안의 작업은 하나의 DB 트랜잭션으로 묶인다.
+     * 메서드가 정상 종료되면 DB 커밋이 완료되고,
+     * Facade에서 그 다음 PG 취소 API를 호출한다.
      */
     @Transactional
-    public CreateRefundResponseDto createRefund(
+    public RefundProcessResult processRefund(
         Long memberId,
         Long orderId,
         CreateRefundRequestDto requestDto
     ) {
-        // 1. 주문 ID로 주문을 조회한다.
         Order order = findOrder(orderId);
-
-        // 2. 로그인한 회원의 주문이 맞는지 검증한다.
         validateOrderOwner(order, memberId);
 
-        // 3. 주문과 연결된 결제 정보를 조회한다.
         Payment payment = findPayment(order);
-
-        // 4. 결제가 환불 가능한 상태인지 검증한다.
         validateRefundablePayment(payment);
 
-        // 5. 환불 요청 상품별로 환불 가능 수량과 환불 금액을 계산한다.
         List<RefundItemCalculation> calculations = createRefundItemCalculations(
             payment,
             orderId,
             requestDto
         );
 
-        // 6. 상품별 계산 결과를 바탕으로 총 포인트 환불 금액을 계산한다.
         Integer totalPointRefundAmount = calculateTotalPointRefundAmount(calculations);
-
-        // 7. 상품별 계산 결과를 바탕으로 총 PG 환불 금액을 계산한다.
         Integer totalPgRefundAmount = calculateTotalPgRefundAmount(calculations);
-
-        // 8. 포인트 환불 금액 + PG 환불 금액을 합쳐 총 환불 금액을 계산한다.
         Integer totalRefundAmount = calculateTotalRefundAmount(calculations);
 
-        // 9. 이번 환불 후 결제 상태를 부분 환불 또는 전체 환불로 변경한다.
+        Integer currentCancellableAmount = calculateCurrentCancellablePgAmount(
+            payment,
+            totalPgRefundAmount
+        );
+
         changePaymentStatus(payment, totalRefundAmount);
 
-        // 10. 환불 전체 기록을 저장한다.
         Refund refund = saveRefund(
             payment,
             requestDto.reason(),
@@ -103,28 +98,28 @@ public class RefundService {
             totalPgRefundAmount
         );
 
-        // 11. 환불 상품 상세 기록들을 저장한다.
         List<RefundItem> refundItems = saveRefundItems(refund, calculations);
 
-        // 12. 환불된 상품 수량만큼 재고를 복구한다.
         restoreStock(calculations);
 
-        // 13. 주문 회원 정보를 가져온다.
         Member member = order.getMember();
-
-        // 14. 결제 때 사용했던 포인트 중 환불 대상 금액만큼 다시 돌려준다.
         refundUsedPoint(member, payment, totalPointRefundAmount);
-
-        // 15. 결제 때 적립했던 포인트 중 환불 대상 금액만큼 회수한다.
         cancelEarnedPoint(member, payment, totalRefundAmount);
 
-        // 16. 저장된 환불 정보를 응답 DTO로 변환해서 반환한다.
-        return CreateRefundResponseDto.from(refund, refundItems);
+        CreateRefundResponseDto responseDto = CreateRefundResponseDto.from(refund, refundItems);
+
+        return new RefundProcessResult(
+            responseDto,
+            refund.getId(),
+            payment.getPortonePaymentId(),
+            totalPgRefundAmount,
+            currentCancellableAmount,
+            requestDto.reason()
+        );
     }
 
     /**
      * 주문 ID로 주문을 조회한다.
-     * 주문이 없으면 ORDER_NOT_FOUND 예외를 발생시킨다.
      */
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
@@ -133,7 +128,6 @@ public class RefundService {
 
     /**
      * 주문 객체로 결제 정보를 조회한다.
-     * 결제 정보가 없으면 PAYMENT_NOT_FOUND 예외를 발생시킨다.
      */
     private Payment findPayment(Order order) {
         return paymentRepository.findByOrder(order)
@@ -142,7 +136,6 @@ public class RefundService {
 
     /**
      * 로그인한 회원의 주문인지 검증한다.
-     * 다른 회원의 주문이면 환불할 수 없다.
      */
     private void validateOrderOwner(Order order, Long memberId) {
         if (!order.getMember().getId().equals(memberId)) {
@@ -152,14 +145,12 @@ public class RefundService {
 
     /**
      * 환불 가능한 결제 상태인지 검증한다.
-     *
-     * COMPLETED:
-     * - 아직 환불되지 않은 결제 완료 상태
-     *
-     * PARTIAL_REFUNDED:
-     * - 이미 일부 환불됐지만 남은 수량에 대해 추가 환불이 가능한 상태
      */
     private void validateRefundablePayment(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new BusinessException(ErrorCode.ALREADY_REFUNDED);
+        }
+
         if (payment.getStatus() != PaymentStatus.COMPLETED
             && payment.getStatus() != PaymentStatus.PARTIAL_REFUNDED) {
             throw new BusinessException(ErrorCode.ORDER_NOT_PAID);
@@ -169,8 +160,8 @@ public class RefundService {
     /**
      * 주문 상품 ID와 주문 ID로 주문 상품을 조회한다.
      *
-     * orderItemId만으로 조회하지 않고 orderId도 같이 확인하는 이유:
-     * - 다른 주문에 속한 주문 상품을 환불 요청하는 것을 막기 위해서다.
+     * orderItemId만으로 조회하지 않고 orderId도 같이 확인해서,
+     * 다른 주문의 주문 상품을 환불하는 상황을 막는다.
      */
     private OrderItem findOrderItem(Long orderItemId, Long orderId) {
         return orderItemRepository.findByIdAndOrder_Id(orderItemId, orderId)
@@ -178,9 +169,7 @@ public class RefundService {
     }
 
     /**
-     * 요청한 환불 수량이 실제 환불 가능한 수량 이하인지 검증한다.
-     *
-     * 환불 가능 수량 = 주문 수량 - 이미 환불된 수량
+     * 요청한 환불 수량이 잔여 환불 가능 수량을 초과하지 않는지 검증한다.
      */
     private void validateRefundableQuantity(OrderItem orderItem, Integer requestQuantity) {
         Integer refundedQuantity = refundItemRepository.sumRefundedQuantityByOrderItemId(orderItem.getId());
@@ -194,21 +183,17 @@ public class RefundService {
     /**
      * 상품 1개에 대한 환불 금액을 계산한다.
      *
-     * 환불 금액 = 주문 당시 상품 가격 * 환불 수량
+     * 환불 금액 = 주문 당시 가격 * 환불 수량
      */
     private Integer calculateItemRefundAmount(OrderItem orderItem, Integer requestQuantity) {
         return orderItem.getPrice() * requestQuantity;
     }
 
     /**
-     * 전체 환불 금액 중 포인트로 돌려줄 금액을 계산한다.
+     * 환불 금액 중 포인트로 돌려줄 금액을 계산한다.
      *
-     * 예:
-     * 총 결제금액 10,000원
-     * 사용 포인트 3,000원
-     * 이번 환불금액 5,000원
-     *
-     * 포인트 환불금액 = 5,000 * 3,000 / 10,000 = 1,500원
+     * 현재 정책:
+     * - 결제 당시 사용 포인트 비율에 따라 포인트 환불 금액을 산정한다.
      */
     private Integer calculatePointRefundAmount(Payment payment, Integer refundAmount) {
         if (payment.getTotalAmount() == 0) {
@@ -219,9 +204,7 @@ public class RefundService {
     }
 
     /**
-     * 전체 환불 금액 중 PG로 환불할 금액을 계산한다.
-     *
-     * PG 환불금액 = 전체 환불금액 - 포인트 환불금액
+     * 환불 금액 중 PG로 취소할 금액을 계산한다.
      */
     private Integer calculatePgRefundAmount(Integer refundAmount, Integer pointRefundAmount) {
         return refundAmount - pointRefundAmount;
@@ -229,13 +212,6 @@ public class RefundService {
 
     /**
      * 환불 금액 비율에 따라 회수할 적립 포인트를 계산한다.
-     *
-     * 예:
-     * 총 결제금액 10,000원
-     * 적립 포인트 100원
-     * 이번 환불금액 5,000원
-     *
-     * 회수할 적립 포인트 = 5,000 * 100 / 10,000 = 50원
      */
     private Integer calculateCancelEarnPoint(Payment payment, Integer refundAmount) {
         if (payment.getTotalAmount() == 0) {
@@ -246,16 +222,26 @@ public class RefundService {
     }
 
     /**
+     * 현재 PG 취소 가능 금액을 계산한다.
+     *
+     * PortOne 취소 API에 넘길 currentCancellableAmount 값이다.
+     */
+    private Integer calculateCurrentCancellablePgAmount(
+        Payment payment,
+        Integer totalPgRefundAmount
+    ) {
+        Integer alreadyPgRefundAmount = refundRepository.sumPgRefundAmountByPaymentId(payment.getId());
+        Integer currentCancellableAmount = payment.getPgAmount() - alreadyPgRefundAmount;
+
+        if (totalPgRefundAmount > currentCancellableAmount) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        return currentCancellableAmount;
+    }
+
+    /**
      * 이번 환불 이후 결제 상태를 변경한다.
-     *
-     * 누적 환불금액 > 총 결제금액:
-     * - 비정상 상황이므로 예외 발생
-     *
-     * 누적 환불금액 == 총 결제금액:
-     * - 전체 환불 상태로 변경
-     *
-     * 누적 환불금액 < 총 결제금액:
-     * - 부분 환불 상태로 변경
      */
     private void changePaymentStatus(Payment payment, Integer totalRefundAmount) {
         Integer alreadyRefundedAmount = refundRepository.sumRefundAmountByPaymentId(payment.getId());
@@ -277,14 +263,6 @@ public class RefundService {
 
     /**
      * 환불 요청 상품들을 돌면서 상품별 환불 계산 결과를 만든다.
-     *
-     * 여기서 하는 일:
-     * 1. 주문 상품 조회
-     * 2. 환불 가능 수량 검증
-     * 3. 상품별 총 환불 금액 계산
-     * 4. 포인트 환불 금액 계산
-     * 5. PG 환불 금액 계산
-     * 6. 계산 결과를 RefundItemCalculation에 담기
      */
     private List<RefundItemCalculation> createRefundItemCalculations(
         Payment payment,
@@ -312,27 +290,6 @@ public class RefundService {
         }
 
         return calculations;
-    }
-
-    /**
-     * 환불 상품 1개에 대한 계산 결과를 담는 Service 내부 전용 record.
-     *
-     * DB에 저장되는 Entity가 아니다.
-     * RefundItem을 만들기 전에 임시로 계산 결과를 보관하는 용도다.
-     */
-    private record RefundItemCalculation(
-        OrderItem orderItem,
-        Integer quantity,
-        Integer pointRefundAmount,
-        Integer pgRefundAmount
-    ) {
-
-        /**
-         * 이 상품 1개에 대한 전체 환불 금액을 반환한다.
-         */
-        Integer totalRefundAmount() {
-            return pointRefundAmount + pgRefundAmount;
-        }
     }
 
     /**
@@ -364,10 +321,6 @@ public class RefundService {
 
     /**
      * 환불 전체 기록을 저장한다.
-     *
-     * Refund:
-     * - 환불 1건의 대표 정보
-     * - 결제 정보, 환불 사유, 총 포인트 환불 금액, 총 PG 환불 금액을 가진다.
      */
     private Refund saveRefund(
         Payment payment,
@@ -387,10 +340,6 @@ public class RefundService {
 
     /**
      * 환불 상품 상세 기록들을 저장한다.
-     *
-     * RefundItem:
-     * - 환불 1건 안에 포함된 상품별 상세 정보
-     * - 어떤 주문 상품을 몇 개 환불했는지 기록한다.
      */
     private List<RefundItem> saveRefundItems(
         Refund refund,
@@ -416,10 +365,6 @@ public class RefundService {
 
     /**
      * 환불된 상품 수량만큼 상품 재고를 복구한다.
-     *
-     * 예:
-     * 주문 시 재고 -2
-     * 환불 시 재고 +2
      */
     private void restoreStock(List<RefundItemCalculation> calculations) {
         for (RefundItemCalculation calculation : calculations) {
@@ -429,8 +374,6 @@ public class RefundService {
 
     /**
      * 결제 때 사용했던 포인트를 회원에게 다시 돌려준다.
-     *
-     * 포인트를 돌려준 뒤 PointTransaction 원장에 REFUND_USE 기록을 남긴다.
      */
     private void refundUsedPoint(
         Member member,
@@ -454,8 +397,6 @@ public class RefundService {
 
     /**
      * 결제 때 적립했던 포인트 중 환불 비율만큼 회수한다.
-     *
-     * 포인트를 회수한 뒤 PointTransaction 원장에 CANCEL_EARN 기록을 남긴다.
      */
     private void cancelEarnedPoint(
         Member member,
@@ -477,5 +418,42 @@ public class RefundService {
         );
 
         pointRepository.save(pointTransaction);
+    }
+
+    /**
+     * 환불 상품 1개에 대한 계산 결과를 담는 Service 내부 전용 record.
+     */
+    private record RefundItemCalculation(
+        OrderItem orderItem,
+        Integer quantity,
+        Integer pointRefundAmount,
+        Integer pgRefundAmount
+    ) {
+
+        /**
+         * 이 상품 1개에 대한 전체 환불 금액을 반환한다.
+         */
+        private Integer totalRefundAmount() {
+            return pointRefundAmount + pgRefundAmount;
+        }
+    }
+
+    /**
+     * DB 환불 처리 후 Facade로 넘길 결과.
+     *
+     * Facade는 이 값을 가지고 트랜잭션 밖에서 PG 취소 API를 호출한다.
+     */
+    public record RefundProcessResult(
+        CreateRefundResponseDto responseDto,
+        Long refundId,
+        String portonePaymentId,
+        Integer pgRefundAmount,
+        Integer currentCancellableAmount,
+        String reason
+    ) {
+
+        public boolean hasPgRefundAmount() {
+            return pgRefundAmount != null && pgRefundAmount > 0;
+        }
     }
 }

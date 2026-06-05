@@ -14,4 +14,12 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
         WHERE r.payment.id = :paymentId
         """)
     Integer sumRefundAmountByPaymentId(@Param("paymentId") Long paymentId);
+
+    @Query("""
+        SELECT COALESCE(SUM(r.pgRefundAmount), 0)
+        FROM Refund r
+        WHERE r.payment.id = :paymentId
+        """)
+    Integer sumPgRefundAmountByPaymentId(@Param("paymentId") Long paymentId);
 }
+

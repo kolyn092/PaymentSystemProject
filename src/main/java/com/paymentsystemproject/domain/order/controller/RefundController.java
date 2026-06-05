@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentsystemproject.domain.order.dto.CreateRefundRequestDto;
 import com.paymentsystemproject.domain.order.dto.CreateRefundResponseDto;
-import com.paymentsystemproject.domain.order.service.RefundService;
+import com.paymentsystemproject.domain.order.facade.RefundFacade;
 import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
 
@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/orders")
 public class RefundController {
 
-    private final RefundService refundService;
+    private final RefundFacade refundFacade;
 
     @PostMapping("/{orderId}/refunds")
     public ResponseEntity<ApiResponse<CreateRefundResponseDto>> createRefund(
@@ -33,7 +33,7 @@ public class RefundController {
     ) {
         Long memberId = userDetails.getMemberId();
 
-        CreateRefundResponseDto responseDto = refundService.createRefund(
+        CreateRefundResponseDto responseDto = refundFacade.createRefund(
             memberId,
             orderId,
             requestDto

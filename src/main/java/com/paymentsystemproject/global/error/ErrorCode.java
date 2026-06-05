@@ -35,13 +35,20 @@ public enum ErrorCode {
     ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_003", "주문 상품을 찾을 수 없습니다."),
     ORDER_NOT_PAID(HttpStatus.BAD_REQUEST, "ORDER_004", "결제 완료된 주문만 환불할 수 있습니다."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_004", "결제 정보를 찾을 수 없습니다."),
-    EXCEED_REFUNDABLE_QUANTITY(HttpStatus.BAD_REQUEST, "REFUND_001", "잔여 환불 가능 수량을 초과헸습니다."),
+    EXCEED_REFUNDABLE_QUANTITY(HttpStatus.BAD_REQUEST, "REFUND_001", "잔여 환불 가능 수량을 초과했습니다."),
+    ALREADY_REFUNDED(HttpStatus.BAD_REQUEST, "REFUND_002", "이미 전체 환불된 주문입니다."),
 
     // Payment
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_001", "보유 포인트가 부족합니다."),
     MINUS_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_002", "포인트는 음수일 수 없습니다."),
     PAYMENT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "PAYMENT_003", "변경할 수 없는 결제 상태입니다."),
-    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_00", "주문 금액보다 많이 사용할 수 없습니다.");
+    PORTONE_SECRET_NOT_FOUND(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        "PAYMENT_005",
+        "PortOne API Secret이 설정되어 있지 않습니다."
+    ),
+    PG_REFUND_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT_006", "PG 환불 요청에 실패했습니다."),
+    POINT_EXCEEDS_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "PAYMENT_007", "주문 금액보다 많이 사용할 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
