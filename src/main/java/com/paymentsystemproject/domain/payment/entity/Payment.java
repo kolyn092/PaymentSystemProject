@@ -102,6 +102,10 @@ public class Payment extends BaseTimeEntity {
         changeStatus(PaymentStatus.FAILED);
     }
 
+    public void markAsCanceled() {
+        changeStatus(PaymentStatus.CANCELED);
+    }
+
     public void changeStatus(PaymentStatus nextStatus) {
         this.status.validateTransition(nextStatus);
         this.status = nextStatus;
