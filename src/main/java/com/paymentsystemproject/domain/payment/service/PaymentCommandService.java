@@ -112,11 +112,12 @@ public class PaymentCommandService {
         order.complete();
 
         // 4) 사용 포인트 차감
-        // payment.getOrder().getMember().getPointBalance() -> ??;
+        // order.getMember().decreasePoint(payment.getUsePoint());
 
         // 5) 포인트 사용 기록 생성
 
         // 5) 포인트 적립
+        // order.getMember().increasePoint(earnedPoint(payment.getPgAmount()));
 
         // 6) 포인트 적립 기록 생성
 
@@ -142,7 +143,7 @@ public class PaymentCommandService {
         payment.markAsCompleted();
 
         // 포인트 차감
-        //payment.getOrder().getMember().
+        //payment.getOrder().getMember().decreasePoint(payment.getUsePoint());
 
         // 포인트 사용 원장 생성
 
@@ -159,4 +160,14 @@ public class PaymentCommandService {
             product.restoreStock(orderItem.getQuantity());
         }
     }
+
+    // 포인트 계산 메서드
+    private int earnedPoint(int pgAmount) {
+        if (pgAmount == 0) {
+            return 0;
+        }
+
+        return pgAmount / 100;
+    }
+
 }

@@ -50,15 +50,7 @@ public class PaymentService {
         return paymentRepository.findByOrderIdAndMemberId(orderId, memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
     }
-
-    private int earnedPoint(int pgAmount) {
-        if (pgAmount == 0) {
-            return 0;
-        }
-
-        return pgAmount / 100;
-    }
-
+    
     private void validPoint(Integer availablePoint, Integer totalAmount, Integer point) {
         // NOTE - dto 에서 처리를 한 경우 굳이 사용하지 않으셔도 됩니다.
         if (point < 0) { // 사용할 포인트가 0미만인 경우
