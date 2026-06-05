@@ -82,6 +82,10 @@ public class PaymentFacade {
     public void cancelPayment(Long memberId, Long orderId) {
         Payment payment = paymentService.findByOrderIdAndMemberId(orderId, memberId);
 
+        if (!payment.isPointOnlyPayment()) {
+            paymentGateway.cancelPayment(payment.getPortonePaymentId(), "사용자 결제 취소", null);
+        }
+        
         paymentCommandService.cancelPayment(payment.getOrder().getId());
     }
 
