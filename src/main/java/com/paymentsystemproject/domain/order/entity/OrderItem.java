@@ -16,6 +16,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+/**
+ * 주문 항목 엔티티입니다.
+ * 주문 생성 시점의 상품명과 가격을 스냅샷으로 저장하여,
+ * 이후 상품 정보가 변경되더라도 주문 당시의 정보를 유지합니다.
+ */
+
 @Entity
 @Table(name = "order_item")
 @Getter
@@ -34,9 +40,11 @@ public class OrderItem extends BaseTimeEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    // 주문 시점의 상품명 스냅샷
     @Column(name = "product_name", length = 200, nullable = false)
     private String productName;
 
+    // 주문 시점의 상품 가격 스냅샷
     @Column(nullable = false)
     private Integer price;
 

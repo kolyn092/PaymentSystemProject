@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class CartService {
 
     private final CartItemRepository cartItemRepository;
