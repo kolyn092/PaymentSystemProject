@@ -90,8 +90,8 @@ public class PaymentCommandService {
         }
         payment.markAsCompleted();
 
-        // 3) 주문 상태 -> CONFIRMED로 변경
-        // orderService.confirmOrder(order);
+        // 3) 주문 상태 -> COMPLETED로 변경
+        order.complete();
 
         // 4) 사용 포인트 차감
         // payment.getOrder().getMember().getPointBalance() -> ??;
@@ -118,7 +118,7 @@ public class PaymentCommandService {
     @Transactional
     public PaymentConfirmResponseDto confirmPointOnlyPayment(Payment payment) {
         // order 상태 completed
-        //payment.getOrder().
+        payment.getOrder().complete();
 
         // payment 상태 completed
         payment.markAsCompleted();
@@ -128,27 +128,9 @@ public class PaymentCommandService {
 
         // 포인트 사용 원장 생성
 
+        // 장바구니 초기화
+        cartService.removeCart(payment.getOrder().getMember().getId());
+
         return PaymentConfirmResponseDto.of(payment, "포인트 전액 결제가 완료되었습니다.");
     }
-
-    /**
-     * 주문에 담긴 상품들의 재고를 복구한다.
-     *
-     * 주문이 생성될 때 상품 재고가 수량만큼 차감되므로,
-     * 결제가 실패해서 주문이 취소되면 차감된 만큼 다시 더해 줘야 한다.
-     * OrderItem은 상품의 "스냅샷"이므로 실제 재고 변경은 Product 엔티티에서 수행한다.
-     */
-
-    // 재고 원복 메서드
-    // private void restoreStock(Order order) {
-    //     for (OrderItem item : order.getOrderItems()) {
-    //         Product product = productService.findProductEntity(item.getProductId());
-    //         product.restoreStock(item.getQuantity());
-    //     }
-    // }
-
-    // 포인트 차감 메서드
-
-    // 포인트 적립 메서드
-
 }
