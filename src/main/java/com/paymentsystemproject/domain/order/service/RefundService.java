@@ -1,7 +1,9 @@
 package com.paymentsystemproject.domain.order.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +70,8 @@ public class RefundService {
         Long orderId,
         CreateRefundRequestDto requestDto
     ) {
+        validateDuplicateRefundItems(requestDto);
+
         Order order = findOrder(orderId);
         validateOrderOwner(order, memberId);
 
@@ -154,6 +158,18 @@ public class RefundService {
         if (payment.getStatus() != PaymentStatus.COMPLETED
             && payment.getStatus() != PaymentStatus.PARTIAL_REFUNDED) {
             throw new BusinessException(ErrorCode.ORDER_NOT_PAID);
+        }
+    }
+
+    private void validateDuplicateRefundItems(CreateRefundRequestDto requestDto) {
+        Set<Long> orderItemIds = new HashSet<>();
+
+        for (CreateRefundRequestDto.RefundItemRequestDto itemRequestDto : requestDto.items()) {
+            boolean isAdded = orderItemIds.add(itemRequestDto.orderItemId());
+
+            if (!isAdded) {
+                throw new BusinessException(ErrorCode.DUPLICATE_REFUND_ITEM);
+            }
         }
     }
 

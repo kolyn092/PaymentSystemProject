@@ -37,6 +37,7 @@ public enum ErrorCode {
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_004", "결제 정보를 찾을 수 없습니다."),
     EXCEED_REFUNDABLE_QUANTITY(HttpStatus.BAD_REQUEST, "REFUND_001", "잔여 환불 가능 수량을 초과했습니다."),
     ALREADY_REFUNDED(HttpStatus.BAD_REQUEST, "REFUND_002", "이미 전체 환불된 주문입니다."),
+    DUPLICATE_REFUND_ITEM(HttpStatus.BAD_REQUEST, "REFUND_003", "동일한 주문 상품은 한 번만 환불 요청할 수 있습니다."),
 
     // Payment
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST, "PAYMENT_001", "보유 포인트가 부족합니다."),
