@@ -48,17 +48,42 @@ public class PointTransaction extends BaseTimeEntity {
         this.amount = amount;
     }
 
-    public static PointTransaction createRefundUsePoint(
+    public static PointTransaction create(
         Member member,
         Payment payment,
+        PointTransactionType type,
         Integer amount
     ) {
         return new PointTransaction(
             member,
             payment,
-            "REFUND_USE",
-            amount
+            type.name(),
+            type.applySign(amount)
         );
+    }
+
+    public static PointTransaction createEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.EARN, amount);
+    }
+
+    public static PointTransaction createUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.USE, amount);
+    }
+
+    public static PointTransaction createRefundUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.REFUND_USE, amount);
     }
 
     public static PointTransaction createCancelEarnPoint(
@@ -66,11 +91,6 @@ public class PointTransaction extends BaseTimeEntity {
         Payment payment,
         Integer amount
     ) {
-        return new PointTransaction(
-            member,
-            payment,
-            "CANCEL_EARN",
-            -amount
-        );
+        return create(member, payment, PointTransactionType.CANCEL_EARN, amount);
     }
 }

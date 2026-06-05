@@ -22,8 +22,7 @@ import com.paymentsystemproject.domain.order.repository.RefundRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
-import com.paymentsystemproject.domain.point.entity.PointTransaction;
-import com.paymentsystemproject.domain.point.repository.PointRepository;
+import com.paymentsystemproject.domain.point.service.PointService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -55,7 +54,7 @@ public class RefundService {
     private final RefundRepository refundRepository;
     private final RefundItemRepository refundItemRepository;
     private final PaymentRepository paymentRepository;
-    private final PointRepository pointRepository;
+    private final PointService pointService;
 
     /**
      * 환불 DB 처리 메인 메서드.
@@ -409,13 +408,11 @@ public class RefundService {
 
         member.increasePoint(totalPointRefundAmount);
 
-        PointTransaction pointTransaction = PointTransaction.createRefundUsePoint(
+        pointService.recordRefundUsePoint(
             member,
             payment,
             totalPointRefundAmount
         );
-
-        pointRepository.save(pointTransaction);
     }
 
     /**
@@ -434,13 +431,11 @@ public class RefundService {
 
         member.decreasePoint(cancelEarnPoint);
 
-        PointTransaction pointTransaction = PointTransaction.createCancelEarnPoint(
+        pointService.recordCancelEarnPoint(
             member,
             payment,
             cancelEarnPoint
         );
-
-        pointRepository.save(pointTransaction);
     }
 
     /**
