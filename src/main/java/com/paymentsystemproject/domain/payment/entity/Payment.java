@@ -93,6 +93,15 @@ public class Payment extends BaseTimeEntity {
         );
     }
 
+    public void markAsCompleted() {
+        changeStatus(PaymentStatus.COMPLETED);
+        this.paidAt = LocalDateTime.now();
+    }
+
+    public void markAsFailed() {
+        changeStatus(PaymentStatus.FAILED);
+    }
+
     public void changeStatus(PaymentStatus nextStatus) {
         this.status.validateTransition(nextStatus);
         this.status = nextStatus;
