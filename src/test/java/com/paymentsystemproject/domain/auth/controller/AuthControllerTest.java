@@ -5,13 +5,15 @@ import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.paymentsystemproject.domain.auth.dto.LoginRequestDto;
 import com.paymentsystemproject.domain.auth.dto.LoginResponseDto;
@@ -20,20 +22,29 @@ import com.paymentsystemproject.domain.auth.dto.SignupResponseDto;
 import com.paymentsystemproject.domain.auth.service.AuthService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
+import com.paymentsystemproject.global.error.GlobalExceptionHandler;
 
 import tools.jackson.databind.ObjectMapper;
 
-@WebMvcTest(AuthController.class)
+@ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
-	@Autowired
 	private MockMvc mockMvc;
-
-	@Autowired
 	private ObjectMapper objectMapper;
 
 	@Mock
 	private AuthService authService;
+
+	@BeforeEach
+	void setUp() {
+		AuthController authController = new AuthController(authService);
+
+		mockMvc = MockMvcBuilders.standaloneSetup(authController)
+			.setControllerAdvice(new GlobalExceptionHandler())
+			.build();
+
+		objectMapper = new ObjectMapper();
+	}
 
 	@Test
 	@DisplayName("회원가입 요청 시 서비스 호출 후 201 응답을 반환한다")
