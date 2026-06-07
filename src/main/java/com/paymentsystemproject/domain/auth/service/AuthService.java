@@ -14,22 +14,15 @@ import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
 	private final AuthRepository authRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtTokenProvider jwtTokenProvider;
-
-	public AuthService(
-		AuthRepository authRepository,
-		PasswordEncoder passwordEncoder,
-		JwtTokenProvider jwtTokenProvider
-	) {
-		this.authRepository = authRepository;
-		this.passwordEncoder = passwordEncoder;
-		this.jwtTokenProvider = jwtTokenProvider;
-	}
 
 	@Transactional
 	public SignupResponseDto signup(SignupRequestDto request) {
