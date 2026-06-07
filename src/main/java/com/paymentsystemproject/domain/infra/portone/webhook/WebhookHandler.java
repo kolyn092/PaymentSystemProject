@@ -135,7 +135,7 @@ public class WebhookHandler {
 
         // [중복 처리 방지]
         if (payment.getStatus() == PaymentStatus.COMPLETED) {
-            paymentCommandService.cancelPayment(payment.getId());
+            paymentCommandService.cancelPayment(payment.getOrder().getId());
         }
 
         webhookEventService.markProcessed(eventId);

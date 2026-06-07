@@ -3,6 +3,7 @@ package com.paymentsystemproject.domain.payment.facade;
 import org.springframework.stereotype.Component;
 
 import com.paymentsystemproject.domain.order.entity.Order;
+import com.paymentsystemproject.domain.order.entity.OrderStatus;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmRequestDto;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
@@ -21,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PaymentFacade {
 
-    private static final String PG_STATUS_COMPLETED = "COMPLETED";
+    private static final String PG_STATUS_PAID = "PAID";
 
     private final PaymentService paymentService;
     private final PaymentCommandService paymentCommandService;
@@ -64,7 +65,7 @@ public class PaymentFacade {
         PaymentGatewayResponseDto pgPayment = paymentGateway.getPayment(payment.getPortonePaymentId());
 
         // 8. PortOne 결제 상태 검증
-        handleIfPgPaymentNotCompleted(payment, order, pgPayment);
+        handleIfPgPaymentNotPaid(payment, order, pgPayment);
 
         // 9. 승인 금액 검증 - PortOne 결제 금액 == payment.pgAmount
         handleIfAmountMismatch(payment, order, pgPayment);
@@ -114,15 +115,14 @@ public class PaymentFacade {
 
     // 주문 상태 검증
     private void validateOrderStatus(Order order) {
-        // TODO - 추후 주석 삭제 예정
-        // if (order.getStatus() != OrderStatus.PENDING) {
-        //     throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
-        // }
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
     }
 
     // PG 결제 상태가 완료인지 확인
-    private void handleIfPgPaymentNotCompleted(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
-        if (!PG_STATUS_COMPLETED.equals(pgPayment.status())) {
+    private void handleIfPgPaymentNotPaid(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
+        if (!PG_STATUS_PAID.equals(pgPayment.status())) {
             log.error("결제 승인 실패 - PG 상태 비정상: paymentId={}, pgStatus={}", payment.getId(), pgPayment.status());
             paymentCommandService.failPayment(order.getId());
             throw new BusinessException(ErrorCode.PAYMENT_NOT_PAID);
