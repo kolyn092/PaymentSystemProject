@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.paymentsystemproject.domain.order.repository.OrderItemRepository;
 import com.paymentsystemproject.domain.product.dto.GetOneProductResponseDto;
 import com.paymentsystemproject.domain.product.dto.GetProductListResponseDto;
 import com.paymentsystemproject.domain.product.dto.GetProductPageableResponseDto;
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
 
     public GetProductPageableResponseDto findAll(
         String category, Integer minPrice, Integer maxPrice, String status, Pageable pageable) {

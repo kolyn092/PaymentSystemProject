@@ -1,8 +1,7 @@
-package com.paymentsystemproject.domain.payment.repository;
+package com.paymentsystemproject.domain.infra.portone.webhook;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.paymentsystemproject.domain.payment.entity.WebhookEvent;
-
 public interface WebhookEventRepository extends JpaRepository<WebhookEvent, Long> {
+
 }

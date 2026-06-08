@@ -20,11 +20,11 @@ public enum ErrorCode {
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_004", "이메일 또는 비밀번호가 올바르지 않습니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_005", "회원을 찾을 수 없습니다."),
 
-    // Product
+    //Product
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_051", "상품을 찾을 수 없습니다."),
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "PRODUCT_052", "재고가 부족합니다."),
 
-    // CartItem
+    //CartItem
     CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_101", "장바구니 항목을 찾을 수 없습니다."),
     INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "CART_102", "수량은 1 이상이어야 합니다."),
     EXCEED_STOCK(HttpStatus.BAD_REQUEST, "CART_103", "상품의 재고 수량을 초과하여 담을 수 없습니다."),
@@ -46,6 +46,10 @@ public enum ErrorCode {
         "PortOne API Secret이 설정되어 있지 않습니다."
     ),
     PG_REFUND_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT_012", "PG 환불 요청에 실패했습니다."),
+
+    // Webhook
+    WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_001", "주문 금액보다 많이 사용할 수 없습니다."),
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 서명 인증에 실패하였습니다."),
 
     // Order
     FORBIDDEN_ACCESS(HttpStatus.FORBIDDEN, "ORDER_001", "접근 권한이 없습니다."),

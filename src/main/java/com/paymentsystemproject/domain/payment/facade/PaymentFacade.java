@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-// 결제 프로세스의 흐름을 제어
 public class PaymentFacade {
 
     private static final String PG_STATUS_PAID = "PAID";

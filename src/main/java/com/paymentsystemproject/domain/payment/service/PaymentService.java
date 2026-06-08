@@ -88,4 +88,10 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.INSUFFICIENT_POINT);
         }
     }
+
+    @Transactional(readOnly = true)
+    public Payment findByPortonePaymentId(String portonePaymentId) {
+        return paymentRepository.findByPortonePaymentId(portonePaymentId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
 }
