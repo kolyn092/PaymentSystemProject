@@ -32,7 +32,6 @@ public class PaymentService {
 
         // pgAmount 계산
         Integer pgAmount = order.getTotalAmount() - usedPoint;
-        // todo - 포인트 전액 결제 구현, 적립 포인트 0원
 
         Payment payment = Payment.createPendingPayment(order, portonePaymentId, order.getTotalAmount(), usedPoint,
             pgAmount);

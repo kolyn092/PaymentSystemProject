@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.paymentsystemproject.global.logging.ApiLoggingFilter;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationEntryPoint;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationFilter;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
@@ -20,23 +21,31 @@ import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 @Configuration
 public class SecurityConfig {
 
+
 	private static final String[] PUBLIC_ENDPOINTS = {
 		"/api/signup",
 		"/api/login",
 		"/actuator/health",
-		"/actuator/info"
+		"/actuator/info",
+		"/api/webhooks/**",
+		"/api/config/portone",
+		"/test-payment.html",
+		"/favicon.ico"
 	};
 
 	private final JwtTokenProvider jwtTokenProvider;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final ApiLoggingFilter apiLoggingFilter;
 
-	@Value("${encoder.strength}")
-	private int strength;
+    @Value("${encoder.strength}")
+    private int strength;
 
 	public SecurityConfig(JwtTokenProvider jwtTokenProvider,
-		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+		ApiLoggingFilter apiLoggingFilter) {
 		this.jwtTokenProvider = jwtTokenProvider;
 		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+		this.apiLoggingFilter = apiLoggingFilter;
 	}
 
 	@Bean
@@ -60,13 +69,14 @@ public class SecurityConfig {
 						.anyRequest()
 						.authenticated()
 			)
-			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(apiLoggingFilter, JwtAuthenticationFilter.class);
 
-		return http.build();
-	}
+        return http.build();
+    }
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder(strength);
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(strength);
+    }
 }
