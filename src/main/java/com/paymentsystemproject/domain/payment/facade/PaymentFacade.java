@@ -61,16 +61,32 @@ public class PaymentFacade {
             return response;
         }
 
+        // 전액 포인트 결제 인지 확인
+        if (payment.isPointOnlyPayment()) {
+            return paymentCommandService.confirmPointOnlyPayment(payment);
+        }
+
         // 7. PortOne API로 실제 결제 조회
+        log.info("조회 paymentId = {}", payment.getPortonePaymentId());
         PaymentGatewayResponseDto pgPayment = paymentGateway.getPayment(payment.getPortonePaymentId());
 
         // 8. PortOne 결제 상태 검증
-        handleIfPgPaymentNotPaid(payment, order, pgPayment);
+        validatePgPaymentCompleted(payment, order, pgPayment);
 
         // 9. 승인 금액 검증 - PortOne 결제 금액 == payment.pgAmount
-        handleIfAmountMismatch(payment, order, pgPayment);
+        validatePaymentAmount(payment, order, pgPayment);
 
         return paymentCommandService.completePayment(order.getId());
+    }
+
+    public void cancelPayment(Long memberId, Long orderId) {
+        Payment payment = paymentService.findByOrderIdAndMemberId(orderId, memberId);
+
+        paymentCommandService.cancelPayment(payment.getOrder().getId());
+        
+        if (!payment.isPointOnlyPayment()) {
+            paymentGateway.cancelPayment(payment.getPortonePaymentId(), "사용자 결제 취소", null);
+        }
     }
 
     // 기본 유효성 검증
@@ -121,7 +137,7 @@ public class PaymentFacade {
     }
 
     // PG 결제 상태가 완료인지 확인
-    private void handleIfPgPaymentNotPaid(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
+    private void validatePgPaymentCompleted(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
         if (!PG_STATUS_PAID.equals(pgPayment.status())) {
             log.error("결제 승인 실패 - PG 상태 비정상: paymentId={}, pgStatus={}", payment.getId(), pgPayment.status());
             paymentCommandService.failPayment(order.getId());
@@ -130,7 +146,7 @@ public class PaymentFacade {
     }
 
     // 서버 결제 금액과 PG 실제 결제 금액 비교
-    private void handleIfAmountMismatch(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
+    private void validatePaymentAmount(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
         if (payment.getPgAmount().equals(pgPayment.totalAmount())) {
             return;
         }

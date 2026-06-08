@@ -21,6 +21,7 @@ import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 @Configuration
 public class SecurityConfig {
 
+
 	private static final String[] PUBLIC_ENDPOINTS = {
 		"/api/signup",
 		"/api/login",
@@ -36,8 +37,8 @@ public class SecurityConfig {
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 	private final ApiLoggingFilter apiLoggingFilter;
 
-	@Value("${encoder.strength}")
-	private int strength;
+    @Value("${encoder.strength}")
+    private int strength;
 
 	public SecurityConfig(JwtTokenProvider jwtTokenProvider,
 		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
@@ -71,11 +72,11 @@ public class SecurityConfig {
 			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
 			.addFilterAfter(apiLoggingFilter, JwtAuthenticationFilter.class);
 
-		return http.build();
-	}
+        return http.build();
+    }
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder(strength);
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(strength);
+    }
 }

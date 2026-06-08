@@ -93,7 +93,8 @@ public class Payment extends BaseTimeEntity {
         );
     }
 
-    public void markAsCompleted() {
+    public void markAsCompleted(int earnedPoint) {
+        this.earnedPoint = earnedPoint;
         changeStatus(PaymentStatus.COMPLETED);
         this.paidAt = LocalDateTime.now();
     }
@@ -109,6 +110,10 @@ public class Payment extends BaseTimeEntity {
     public void changeStatus(PaymentStatus nextStatus) {
         this.status.validateTransition(nextStatus);
         this.status = nextStatus;
+    }
+
+    public boolean isPointOnlyPayment() {
+        return this.pgAmount == 0;
     }
 
 }
