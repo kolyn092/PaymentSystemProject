@@ -211,4 +211,9 @@ public class OrderService {
 
         return CancelOrderResponseDto.from(order);
     }
+
+    @Transactional
+    public void cancelByFullRefund(Order order) {
+        order.cancel();
+    }
 }
