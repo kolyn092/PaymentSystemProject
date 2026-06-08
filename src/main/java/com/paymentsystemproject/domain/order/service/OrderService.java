@@ -92,4 +92,9 @@ public class OrderService {
 
         return order;
     }
+
+    @Transactional
+    public void cancelByFullRefund(Order order) {
+        order.cancel();
+    }
 }

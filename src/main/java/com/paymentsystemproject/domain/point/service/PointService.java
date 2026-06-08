@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.member.repository.MemberRepository;
+import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.point.dto.GetPointBalanceResponseDto;
 import com.paymentsystemproject.domain.point.dto.GetPointTransactionsResponseDto;
 import com.paymentsystemproject.domain.point.entity.PointTransaction;
+import com.paymentsystemproject.domain.point.entity.PointTransactionType;
 import com.paymentsystemproject.domain.point.repository.PointRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -42,6 +44,92 @@ public class PointService {
         );
 
         return GetPointTransactionsResponseDto.from(pointTransactions);
+    }
+
+    @Transactional
+    public void recordEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        recordPointTransaction(member, payment, PointTransactionType.EARN, amount);
+    }
+
+    @Transactional
+    public void recordUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        recordPointTransaction(member, payment, PointTransactionType.USE, amount);
+    }
+
+    @Transactional
+    public void recordRefundUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        recordPointTransaction(member, payment, PointTransactionType.REFUND_USE, amount);
+    }
+
+    @Transactional
+    public void recordCancelEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        recordPointTransaction(member, payment, PointTransactionType.CANCEL_EARN, amount);
+    }
+
+    @Transactional
+    public void refundUsedPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        member.increasePoint(amount);
+
+        recordPointTransaction(member, payment, PointTransactionType.REFUND_USE, amount);
+    }
+
+    @Transactional
+    public void cancelEarnedPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        member.decreasePoint(amount);
+
+        recordPointTransaction(member, payment, PointTransactionType.CANCEL_EARN, amount);
+    }
+
+    private void recordPointTransaction(
+        Member member,
+        Payment payment,
+        PointTransactionType type,
+        Integer amount
+    ) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        PointTransaction pointTransaction = PointTransaction.create(
+            member,
+            payment,
+            type,
+            amount
+        );
+
+        pointRepository.save(pointTransaction);
     }
 
     private void validatePageRequest(int page, int size) {

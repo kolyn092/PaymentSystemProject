@@ -22,6 +22,16 @@ public record PortOneCancelRequestDto(
     Integer currentCancellableAmount, // [선택] 현재 취소 가능 금액 검증용
     String storeId                    // [조건부] 하위 상점 사용 시 필수
 ) {
+
+    public static PortOneCancelRequestDto of(
+        String reason,
+        Integer amount,
+        Integer currentCancellableAmount,
+        String storeId
+    ) {
+        return new PortOneCancelRequestDto(reason, amount, currentCancellableAmount, storeId);
+    }
+
     public boolean isFullCancel() {
         return amount == null;
     }
