@@ -15,13 +15,10 @@ import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.entity.Refund;
 import com.paymentsystemproject.domain.order.entity.RefundItem;
-import com.paymentsystemproject.domain.order.repository.OrderItemRepository;
-import com.paymentsystemproject.domain.order.repository.OrderRepository;
 import com.paymentsystemproject.domain.order.repository.RefundItemRepository;
 import com.paymentsystemproject.domain.order.repository.RefundRepository;
 import com.paymentsystemproject.domain.payment.entity.Payment;
-import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
-import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
+import com.paymentsystemproject.domain.payment.service.PaymentService;
 import com.paymentsystemproject.domain.point.service.PointService;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -49,12 +46,13 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class RefundService {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
+    private final OrderItemService orderItemService;
     private final RefundRepository refundRepository;
     private final RefundItemRepository refundItemRepository;
-    private final PaymentRepository paymentRepository;
     private final PointService pointService;
+    private final PaymentService paymentService;
+    private final OrderService orderService;
+    private final RefundCalculator refundCalculator;
 
     /**
      * 환불 DB 처리 메인 메서드.
@@ -71,11 +69,10 @@ public class RefundService {
     ) {
         validateDuplicateRefundItems(requestDto);
 
-        Order order = findOrder(orderId);
-        validateOrderOwner(order, memberId);
+        Payment payment = paymentService.findByOrderIdAndMemberId(orderId, memberId);
+        Order order = payment.getOrder();
 
-        Payment payment = findPayment(order);
-        validateRefundablePayment(payment);
+        paymentService.validateRefundablePayment(payment);
 
         List<RefundItemCalculation> calculations = createRefundItemCalculations(
             payment,
@@ -121,45 +118,6 @@ public class RefundService {
         );
     }
 
-    /**
-     * 주문 ID로 주문을 조회한다.
-     */
-    private Order findOrder(Long orderId) {
-        return orderRepository.findById(orderId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-    }
-
-    /**
-     * 주문 객체로 결제 정보를 조회한다.
-     */
-    private Payment findPayment(Order order) {
-        return paymentRepository.findByOrder(order)
-            .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-    }
-
-    /**
-     * 로그인한 회원의 주문인지 검증한다.
-     */
-    private void validateOrderOwner(Order order, Long memberId) {
-        if (!order.getMember().getId().equals(memberId)) {
-            throw new BusinessException(ErrorCode.ORDER_ACCESS_DENIED);
-        }
-    }
-
-    /**
-     * 환불 가능한 결제 상태인지 검증한다.
-     */
-    private void validateRefundablePayment(Payment payment) {
-        if (payment.getStatus() == PaymentStatus.REFUNDED) {
-            throw new BusinessException(ErrorCode.ALREADY_REFUNDED);
-        }
-
-        if (payment.getStatus() != PaymentStatus.COMPLETED
-            && payment.getStatus() != PaymentStatus.PARTIAL_REFUNDED) {
-            throw new BusinessException(ErrorCode.ORDER_NOT_PAID);
-        }
-    }
-
     private void validateDuplicateRefundItems(CreateRefundRequestDto requestDto) {
         Set<Long> orderItemIds = new HashSet<>();
 
@@ -170,70 +128,6 @@ public class RefundService {
                 throw new BusinessException(ErrorCode.DUPLICATE_REFUND_ITEM);
             }
         }
-    }
-
-    /**
-     * 주문 상품 ID와 주문 ID로 주문 상품을 조회한다.
-     *
-     * orderItemId만으로 조회하지 않고 orderId도 같이 확인해서,
-     * 다른 주문의 주문 상품을 환불하는 상황을 막는다.
-     */
-    private OrderItem findOrderItem(Long orderItemId, Long orderId) {
-        return orderItemRepository.findByIdAndOrder_Id(orderItemId, orderId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND));
-    }
-
-    /**
-     * 요청한 환불 수량이 잔여 환불 가능 수량을 초과하지 않는지 검증한다.
-     */
-    private void validateRefundableQuantity(OrderItem orderItem, Integer requestQuantity) {
-        Integer refundedQuantity = refundItemRepository.sumRefundedQuantityByOrderItemId(orderItem.getId());
-        Integer refundableQuantity = orderItem.getQuantity() - refundedQuantity;
-
-        if (requestQuantity > refundableQuantity) {
-            throw new BusinessException(ErrorCode.EXCEED_REFUNDABLE_QUANTITY);
-        }
-    }
-
-    /**
-     * 상품 1개에 대한 환불 금액을 계산한다.
-     *
-     * 환불 금액 = 주문 당시 가격 * 환불 수량
-     */
-    private Integer calculateItemRefundAmount(OrderItem orderItem, Integer requestQuantity) {
-        return orderItem.getPrice() * requestQuantity;
-    }
-
-    /**
-     * 환불 금액 중 포인트로 돌려줄 금액을 계산한다.
-     *
-     * 현재 정책:
-     * - 결제 당시 사용 포인트 비율에 따라 포인트 환불 금액을 산정한다.
-     */
-    private Integer calculatePointRefundAmount(Payment payment, Integer refundAmount) {
-        if (payment.getTotalAmount() == 0) {
-            return 0;
-        }
-
-        return refundAmount * payment.getUsePoint() / payment.getTotalAmount();
-    }
-
-    /**
-     * 환불 금액 중 PG로 취소할 금액을 계산한다.
-     */
-    private Integer calculatePgRefundAmount(Integer refundAmount, Integer pointRefundAmount) {
-        return refundAmount - pointRefundAmount;
-    }
-
-    /**
-     * 환불 금액 비율에 따라 회수할 적립 포인트를 계산한다.
-     */
-    private Integer calculateCancelEarnPoint(Payment payment, Integer refundAmount) {
-        if (payment.getTotalAmount() == 0) {
-            return 0;
-        }
-
-        return refundAmount * payment.getEarnedPoint() / payment.getTotalAmount();
     }
 
     /**
@@ -271,14 +165,12 @@ public class RefundService {
         }
 
         if (afterRefundAmount.equals(payment.getTotalAmount())) {
-            payment.changeStatus(PaymentStatus.REFUNDED);
-            order.cancel();
+            paymentService.changeToRefunded(payment);
+            orderService.cancelByFullRefund(order);
             return;
         }
 
-        if (payment.getStatus() == PaymentStatus.COMPLETED) {
-            payment.changeStatus(PaymentStatus.PARTIAL_REFUNDED);
-        }
+        paymentService.changeToPartialRefundedIfCompleted(payment);
     }
 
     /**
@@ -292,12 +184,20 @@ public class RefundService {
         List<RefundItemCalculation> calculations = new ArrayList<>();
 
         for (CreateRefundRequestDto.RefundItemRequestDto itemRequestDto : requestDto.items()) {
-            OrderItem orderItem = findOrderItem(itemRequestDto.orderItemId(), orderId);
-            validateRefundableQuantity(orderItem, itemRequestDto.quantity());
+            OrderItem orderItem = orderItemService.findOrderItemForRefund(
+                itemRequestDto.orderItemId(), orderId
+            );
 
-            Integer itemRefundAmount = calculateItemRefundAmount(orderItem, itemRequestDto.quantity());
-            Integer pointRefundAmount = calculatePointRefundAmount(payment, itemRefundAmount);
-            Integer pgRefundAmount = calculatePgRefundAmount(itemRefundAmount, pointRefundAmount);
+            orderItemService.validateRefundableQuantity(
+                orderItem, itemRequestDto.quantity()
+            );
+
+            Integer itemRefundAmount = refundCalculator.calculateItemRefundAmount(orderItem.getPrice(),
+                itemRequestDto.quantity());
+
+            Integer pointRefundAmount = refundCalculator.calculatePointRefundAmount(payment, itemRefundAmount);
+
+            Integer pgRefundAmount = refundCalculator.calculatePgRefundAmount(itemRefundAmount, pointRefundAmount);
 
             RefundItemCalculation calculation = new RefundItemCalculation(
                 orderItem,
@@ -387,9 +287,14 @@ public class RefundService {
      * 환불된 상품 수량만큼 상품 재고를 복구한다.
      */
     private void restoreStock(List<RefundItemCalculation> calculations) {
-        for (RefundItemCalculation calculation : calculations) {
-            calculation.orderItem().getProduct().increaseStock(calculation.quantity());
-        }
+        List<OrderItemService.OrderItemRefundStockRestoreCommand> commands = calculations.stream()
+            .map(calculation -> new OrderItemService.OrderItemRefundStockRestoreCommand(
+                calculation.orderItem(),
+                calculation.quantity()
+            ))
+            .toList();
+
+        orderItemService.restoreStock(commands);
     }
 
     /**
@@ -400,17 +305,7 @@ public class RefundService {
         Payment payment,
         Integer totalPointRefundAmount
     ) {
-        if (totalPointRefundAmount <= 0) {
-            return;
-        }
-
-        member.increasePoint(totalPointRefundAmount);
-
-        pointService.recordRefundUsePoint(
-            member,
-            payment,
-            totalPointRefundAmount
-        );
+        pointService.refundUsedPoint(member, payment, totalPointRefundAmount);
     }
 
     /**
@@ -421,19 +316,9 @@ public class RefundService {
         Payment payment,
         Integer totalRefundAmount
     ) {
-        Integer cancelEarnPoint = calculateCancelEarnPoint(payment, totalRefundAmount);
+        Integer cancelEarnPoint = refundCalculator.calculateCancelEarnPoint(payment, totalRefundAmount);
 
-        if (cancelEarnPoint <= 0) {
-            return;
-        }
-
-        member.decreasePoint(cancelEarnPoint);
-
-        pointService.recordCancelEarnPoint(
-            member,
-            payment,
-            cancelEarnPoint
-        );
+        pointService.cancelEarnedPoint(member, payment, cancelEarnPoint);
     }
 
     /**

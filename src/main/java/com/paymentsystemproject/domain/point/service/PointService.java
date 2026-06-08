@@ -82,6 +82,36 @@ public class PointService {
         recordPointTransaction(member, payment, PointTransactionType.CANCEL_EARN, amount);
     }
 
+    @Transactional
+    public void refundUsedPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        member.increasePoint(amount);
+
+        recordPointTransaction(member, payment, PointTransactionType.REFUND_USE, amount);
+    }
+
+    @Transactional
+    public void cancelEarnedPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        if (amount == null || amount <= 0) {
+            return;
+        }
+
+        member.decreasePoint(amount);
+
+        recordPointTransaction(member, payment, PointTransactionType.CANCEL_EARN, amount);
+    }
+
     private void recordPointTransaction(
         Member member,
         Payment payment,
