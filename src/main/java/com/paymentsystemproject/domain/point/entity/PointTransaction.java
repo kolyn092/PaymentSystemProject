@@ -23,21 +23,74 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointTransaction extends BaseTimeEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "member_id", nullable = false)
-	private Member member;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "payment_id", nullable = false)
-	private Payment payment;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "payment_id", nullable = false)
+    private Payment payment;
 
-	@Column(length = 20, nullable = false)
-	private String type;
+    @Column(length = 20, nullable = false)
+    private String type;
 
-	@Column(nullable = false)
-	private Integer amount;
+    @Column(nullable = false)
+    private Integer amount;
+
+    private PointTransaction(Member member, Payment payment, String type, Integer amount) {
+        this.member = member;
+        this.payment = payment;
+        this.type = type;
+        this.amount = amount;
+    }
+
+    public static PointTransaction create(
+        Member member,
+        Payment payment,
+        PointTransactionType type,
+        Integer amount
+    ) {
+        return new PointTransaction(
+            member,
+            payment,
+            type.name(),
+            type.applySign(amount)
+        );
+    }
+
+    public static PointTransaction createEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.EARN, amount);
+    }
+
+    public static PointTransaction createUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.USE, amount);
+    }
+
+    public static PointTransaction createRefundUsePoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.REFUND_USE, amount);
+    }
+
+    public static PointTransaction createCancelEarnPoint(
+        Member member,
+        Payment payment,
+        Integer amount
+    ) {
+        return create(member, payment, PointTransactionType.CANCEL_EARN, amount);
+    }
 }
