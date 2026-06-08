@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 // 결제 프로세스의 흐름을 제어
 public class PaymentFacade {
 
-    private static final String PG_STATUS_COMPLETED = "COMPLETED";
+    private static final String PG_STATUS_PAID = "PAID";
 
     private final PaymentService paymentService;
     private final PaymentCommandService paymentCommandService;
@@ -68,6 +68,7 @@ public class PaymentFacade {
         }
 
         // 7. PortOne API로 실제 결제 조회
+        log.info("조회 paymentId = {}", payment.getPortonePaymentId());
         PaymentGatewayResponseDto pgPayment = paymentGateway.getPayment(payment.getPortonePaymentId());
 
         // 8. PortOne 결제 상태 검증
@@ -85,7 +86,7 @@ public class PaymentFacade {
         if (!payment.isPointOnlyPayment()) {
             paymentGateway.cancelPayment(payment.getPortonePaymentId(), "사용자 결제 취소", null);
         }
-        
+
         paymentCommandService.cancelPayment(payment.getOrder().getId());
     }
 
@@ -138,7 +139,7 @@ public class PaymentFacade {
 
     // PG 결제 상태가 완료인지 확인
     private void validatePgPaymentCompleted(Payment payment, Order order, PaymentGatewayResponseDto pgPayment) {
-        if (!PG_STATUS_COMPLETED.equals(pgPayment.status())) {
+        if (!PG_STATUS_PAID.equals(pgPayment.status())) {
             log.error("결제 승인 실패 - PG 상태 비정상: paymentId={}, pgStatus={}", payment.getId(), pgPayment.status());
             paymentCommandService.failPayment(order.getId());
             throw new BusinessException(ErrorCode.PAYMENT_NOT_PAID);
