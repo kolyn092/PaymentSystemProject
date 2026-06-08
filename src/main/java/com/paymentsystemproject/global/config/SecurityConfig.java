@@ -24,7 +24,11 @@ public class SecurityConfig {
 		"/api/signup",
 		"/api/login",
 		"/actuator/health",
-		"/actuator/info"
+		"/actuator/info",
+		"/api/webhooks/**",
+		"/api/config/portone",
+		"/test-payment.html",
+		"/favicon.ico"
 	};
 
 	private final JwtTokenProvider jwtTokenProvider;
