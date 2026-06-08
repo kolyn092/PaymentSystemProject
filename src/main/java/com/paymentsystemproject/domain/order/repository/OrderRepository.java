@@ -35,7 +35,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                     WHERE o.id =:orderId AND o.member.id = :memberId
         """)
     Optional<Order> findByIdAndMemberIdWithOrderItems(
-        @Param("orderId") Long orderId,
-        @Param("memberId") Long memberId
+        @Param("memberId") Long memberId,
+        @Param("orderId") Long orderId
     );
 }
