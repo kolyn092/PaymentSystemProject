@@ -1,5 +1,7 @@
 package com.paymentsystemproject.domain.product.dto;
 
+import java.time.LocalDateTime;
+
 import com.paymentsystemproject.global.status.ProductCategory;
 import com.paymentsystemproject.global.status.ProductStatus;
 
@@ -9,6 +11,8 @@ public record GetProductListResponseDto(
     int price,
     int stock,
     ProductStatus status,
-    ProductCategory category
+    ProductCategory category,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
 ) {
 }

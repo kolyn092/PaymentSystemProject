@@ -20,12 +20,17 @@ import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 @Configuration
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_ENDPOINTS = {
-        "/api/signup",
-        "/api/login",
-        "/actuator/health",
-        "/actuator/info"
-    };
+
+	private static final String[] PUBLIC_ENDPOINTS = {
+		"/api/signup",
+		"/api/login",
+		"/actuator/health",
+		"/actuator/info",
+		"/api/webhooks/**",
+		"/api/config/portone",
+		"/test-payment.html",
+		"/favicon.ico"
+	};
 
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

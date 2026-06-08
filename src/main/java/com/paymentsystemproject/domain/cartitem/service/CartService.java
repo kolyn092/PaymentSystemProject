@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.cartitem.dto.AddCartRequestDto;
+import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
@@ -30,13 +31,13 @@ public class CartService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public Long addItem(Long memberId, AddCartRequestDto requestDto) {
+    public AddCartResponseDto addItem(Long memberId, AddCartRequestDto requestDto) {
         Optional<CartItem> existing = cartItemRepository.findByMember_idAndProduct_Id(memberId, requestDto.productId());
 
         if (existing.isPresent()) {
             CartItem addItem = existing.get();
             addItem.addQuantity(requestDto.quantity());
-            return addItem.getId();
+            return AddCartResponseDto.from(addItem);
         } else {
             Member member = memberRepository.findById(memberId).orElseThrow(
                 () -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND)
@@ -46,7 +47,8 @@ public class CartService {
             );
 
             CartItem cartItem = CartItem.from(member, product, requestDto.quantity());
-            return cartItemRepository.save(cartItem).getId();
+            CartItem savedItem = cartItemRepository.save(cartItem);
+            return AddCartResponseDto.from(savedItem);
         }
     }
 
@@ -107,8 +109,8 @@ public class CartService {
     }
 
     /**
-     * 회원의 전체 장바구니 항목을 엔티티로 조회합니다.
-     * Facade에서 주문 처리 시 엔티티 필요한 경우 사용합니다.
+     * 회원의 전체 장바구니 항목을 엔티티로 조회
+     * Facade에서 주문 처리 시 엔티티 필요한 경우 사용
      *
      * @param memberId 회원 ID
      * @return 장바구니 항목 엔티티 목록
@@ -119,8 +121,8 @@ public class CartService {
     }
 
     /**
-     * 회원의 장바구니 항목 중 지정된 ID 목록에 해당하는 항목을 엔티티로 조회합니다.
-     * Facade에서 주문 처리 시 엔티티가 필요한 경우 사용합니다.
+     * 회원의 장바구니 항목 중 지정된 ID 목록에 해당하는 항목을 엔티티로 조회
+     * Facade에서 주문 처리 시 엔티티가 필요한 경우 사용
      *
      * @param memberId 회원 ID
      * @param cartItemIds 조회할 장바구니 항목 ID 목록
