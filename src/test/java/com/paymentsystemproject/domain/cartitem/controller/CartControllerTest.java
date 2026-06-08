@@ -35,13 +35,13 @@ class CartControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper; // 객체를 JSON 문자열로 바꿔주는 마법의 도구!
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private CartService cartService;
 
     @MockitoBean
-    private JpaMetamodelMappingContext jpaMappingContext; // JPA 감시자 에러 방지용
+    private JpaMetamodelMappingContext jpaMappingContext;
 
     private CustomUserDetails mockUser;
 
@@ -54,7 +54,6 @@ class CartControllerTest {
     @Test
     @DisplayName("장바구니 상품 추가 API가 정상적으로 응답한다.")
     void addItem_success() throws Exception {
-        // given
         AddCartRequestDto request = new AddCartRequestDto(100L, 2);
         given(cartService.addItem(eq(1L), any(AddCartRequestDto.class))).willReturn(10L);
 
