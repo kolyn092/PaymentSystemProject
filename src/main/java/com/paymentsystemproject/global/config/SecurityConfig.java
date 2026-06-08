@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.paymentsystemproject.global.logging.ApiLoggingFilter;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationEntryPoint;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationFilter;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
@@ -32,40 +33,44 @@ public class SecurityConfig {
 		"/favicon.ico"
 	};
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final JwtTokenProvider jwtTokenProvider;
+	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final ApiLoggingFilter apiLoggingFilter;
 
     @Value("${encoder.strength}")
     private int strength;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider,
-        JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
-    }
+	public SecurityConfig(JwtTokenProvider jwtTokenProvider,
+		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+		ApiLoggingFilter apiLoggingFilter) {
+		this.jwtTokenProvider = jwtTokenProvider;
+		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+		this.apiLoggingFilter = apiLoggingFilter;
+	}
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .formLogin(FormLoginConfigurer<HttpSecurity>::disable)
-            .httpBasic(HttpBasicConfigurer<HttpSecurity>::disable)
-            .logout(AbstractHttpConfigurer::disable)
-            .sessionManagement(
-                session ->
-                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(
-                handler ->
-                    handler.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .authorizeHttpRequests(
-                auth ->
-                    auth
-                        .requestMatchers(PUBLIC_ENDPOINTS)
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated()
-            )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(AbstractHttpConfigurer::disable)
+			.formLogin(FormLoginConfigurer<HttpSecurity>::disable)
+			.httpBasic(HttpBasicConfigurer<HttpSecurity>::disable)
+			.logout(AbstractHttpConfigurer::disable)
+			.sessionManagement(
+				session ->
+					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.exceptionHandling(
+				handler ->
+					handler.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+			.authorizeHttpRequests(
+				auth ->
+					auth
+						.requestMatchers(PUBLIC_ENDPOINTS)
+						.permitAll()
+						.anyRequest()
+						.authenticated()
+			)
+			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(apiLoggingFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
