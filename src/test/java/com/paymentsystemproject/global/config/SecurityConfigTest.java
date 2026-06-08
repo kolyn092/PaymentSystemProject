@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.paymentsystemproject.global.logging.ApiLoggingFilter;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationEntryPoint;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 
@@ -97,6 +98,11 @@ class SecurityConfigTest {
 		@Bean
 		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint(tools.jackson.databind.ObjectMapper objectMapper) {
 			return new JwtAuthenticationEntryPoint(objectMapper);
+		}
+
+		@Bean
+		ApiLoggingFilter apiLoggingFilter() {
+			return new ApiLoggingFilter();
 		}
 	}
 }
