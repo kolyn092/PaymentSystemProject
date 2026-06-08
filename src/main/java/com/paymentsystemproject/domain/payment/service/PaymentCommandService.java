@@ -10,6 +10,7 @@ import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
+import com.paymentsystemproject.domain.point.service.PointService;
 import com.paymentsystemproject.domain.product.entity.Product;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -22,6 +23,7 @@ public class PaymentCommandService {
 
     private final PaymentRepository paymentRepository;
     private final CartService cartService;
+    private final PointService pointService;
 
     /**
      *   1) 주문 ID로 결제 + 주문을 함께 조회 (fetch join)
@@ -112,14 +114,16 @@ public class PaymentCommandService {
         order.complete();
 
         // 4) 사용 포인트 차감
-        // order.getMember().decreasePoint(payment.getUsePoint());
+        order.getMember().decreasePoint(payment.getUsePoint());
 
         // 5) 포인트 사용 기록 생성
+        pointService.recordUsePoint(order.getMember(), payment, payment.getUsePoint());
 
         // 5) 포인트 적립
-        // order.getMember().increasePoint(earnedPoint(payment.getPgAmount()));
+        order.getMember().increasePoint(earnedPoint(payment.getPgAmount()));
 
         // 6) 포인트 적립 기록 생성
+        pointService.recordEarnPoint(order.getMember(), payment, payment.getEarnedPoint());
 
         // 8) 장바구니 초기화
         cartService.removeCart(order.getMember().getId());
@@ -143,9 +147,10 @@ public class PaymentCommandService {
         payment.markAsCompleted();
 
         // 포인트 차감
-        //payment.getOrder().getMember().decreasePoint(payment.getUsePoint());
+        payment.getOrder().getMember().decreasePoint(payment.getUsePoint());
 
         // 포인트 사용 원장 생성
+        pointService.recordUsePoint(payment.getOrder().getMember(), payment, payment.getUsePoint());
 
         // 장바구니 초기화
         cartService.removeCart(payment.getOrder().getMember().getId());

@@ -51,4 +51,12 @@ public class Member extends BaseTimeEntity {
 		this.phone = phone;
 		this.pointBalance = 0;
 	}
+
+    public void increasePoint(Integer amount) {
+        this.pointBalance += amount;
+    }
+
+    public void decreasePoint(Integer amount) {
+        this.pointBalance -= amount;
+    }
 }

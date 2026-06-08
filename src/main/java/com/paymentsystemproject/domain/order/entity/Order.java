@@ -74,7 +74,7 @@ public class Order extends BaseTimeEntity {
 
     /**
      * 주문을 취소 상태로 변경합니다.
-     * 결제 대기 (PENDING_PAYMENT) 상태인 경우에만 호출되어야 합니다.
+     * 결제 실패, 회원 직접 취소, 전액 환불 시 호출됩니다..
      */
 
     public void cancel() {

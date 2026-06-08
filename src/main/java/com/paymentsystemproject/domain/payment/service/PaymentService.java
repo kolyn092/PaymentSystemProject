@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.payment.entity.Payment;
+import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
@@ -50,7 +51,31 @@ public class PaymentService {
         return paymentRepository.findByOrderIdAndMemberId(orderId, memberId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
     }
-    
+
+    @Transactional(readOnly = true)
+    public void validateRefundablePayment(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.REFUNDED) {
+            throw new BusinessException(ErrorCode.ALREADY_REFUNDED);
+        }
+
+        if (payment.getStatus() != PaymentStatus.COMPLETED
+            && payment.getStatus() != PaymentStatus.PARTIAL_REFUNDED) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_PAID);
+        }
+    }
+
+    @Transactional
+    public void changeToRefunded(Payment payment) {
+        payment.changeStatus(PaymentStatus.REFUNDED);
+    }
+
+    @Transactional
+    public void changeToPartialRefundedIfCompleted(Payment payment) {
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
+            payment.changeStatus(PaymentStatus.PARTIAL_REFUNDED);
+        }
+    }
+
     private void validPoint(Integer availablePoint, Integer totalAmount, Integer point) {
         // NOTE - dto 에서 처리를 한 경우 굳이 사용하지 않으셔도 됩니다.
         if (point < 0) { // 사용할 포인트가 0미만인 경우

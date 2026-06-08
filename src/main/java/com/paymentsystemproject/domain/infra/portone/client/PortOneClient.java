@@ -39,11 +39,22 @@ public class PortOneClient implements PaymentGateway {
 
     @Override
     public void cancelPayment(String paymentId, String reason, Integer amount) {
+        cancelPayment(paymentId, reason, amount, null);
+    }
+
+    public void cancelPayment(String paymentId, String reason, Integer amount, Integer currentCancellableAmount) {
         log.info("PortOne 결제 취소 요청: paymentId={}, amount={}, reason={}", paymentId, amount, reason);
+
+        PortOneCancelRequestDto requestDto = PortOneCancelRequestDto.of(
+            reason,
+            amount,
+            currentCancellableAmount,
+            portOneProperties.getStoreId()
+        );
 
         portOneRestClient.post()
             .uri("/payments/{paymentId}/cancel", paymentId)
-            .body(new PortOneCancelRequestDto(reason, amount, null, portOneProperties.getStoreId()))
+            .body(requestDto)
             .retrieve()
             .toBodilessEntity();
     }
