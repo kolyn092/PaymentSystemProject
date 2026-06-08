@@ -20,6 +20,7 @@ import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
 @Configuration
 public class SecurityConfig {
 
+
 	private static final String[] PUBLIC_ENDPOINTS = {
 		"/api/signup",
 		"/api/login",
@@ -31,46 +32,46 @@ public class SecurityConfig {
 		"/favicon.ico"
 	};
 
-	private final JwtTokenProvider jwtTokenProvider;
-	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-	@Value("${encoder.strength}")
-	private int strength;
+    @Value("${encoder.strength}")
+    private int strength;
 
-	public SecurityConfig(JwtTokenProvider jwtTokenProvider,
-		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
-		this.jwtTokenProvider = jwtTokenProvider;
-		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
-	}
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider,
+        JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+    }
 
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		http
-			.csrf(AbstractHttpConfigurer::disable)
-			.formLogin(FormLoginConfigurer<HttpSecurity>::disable)
-			.httpBasic(HttpBasicConfigurer<HttpSecurity>::disable)
-			.logout(AbstractHttpConfigurer::disable)
-			.sessionManagement(
-				session ->
-					session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.exceptionHandling(
-				handler ->
-					handler.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-			.authorizeHttpRequests(
-				auth ->
-					auth
-						.requestMatchers(PUBLIC_ENDPOINTS)
-						.permitAll()
-						.anyRequest()
-						.authenticated()
-			)
-			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .formLogin(FormLoginConfigurer<HttpSecurity>::disable)
+            .httpBasic(HttpBasicConfigurer<HttpSecurity>::disable)
+            .logout(AbstractHttpConfigurer::disable)
+            .sessionManagement(
+                session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(
+                handler ->
+                    handler.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+            .authorizeHttpRequests(
+                auth ->
+                    auth
+                        .requestMatchers(PUBLIC_ENDPOINTS)
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated()
+            )
+            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
 
-		return http.build();
-	}
+        return http.build();
+    }
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder(strength);
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(strength);
+    }
 }

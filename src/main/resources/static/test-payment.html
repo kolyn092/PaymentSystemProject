@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PortOne Test Payment</title>
+    <!-- test-payment.html의 <head> 안에 추가 -->
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+</head>
+<body>
+<button onclick="requestPayment()">테스트 결제</button>
+
+<script>
+    async function requestPayment() {
+        const paymentId = "pay-" + crypto.randomUUID();
+
+        const response = await PortOne.requestPayment({
+            storeId: "store-c910ed7f-1bdc-4ba9-91d5-4d0885bd59a3",
+            channelKey: "channel-key-1c17c5a4-16a1-4eb4-be50-8eb37079c7e1",
+            paymentId: paymentId,
+            orderName: "테스트 상품",
+            totalAmount: 1000,
+            currency: "CURRENCY_KRW",
+            payMethod: "CARD",
+            customer: {
+                fullName: "테스트 구매자",
+                email: "test@example.com",
+                phoneNumber: "01012345678"
+            }
+        });
+
+        console.log("paymentId =", paymentId);
+        console.log("response =", response);
+
+        window.lastPaymentId = paymentId;
+        window.lastPaymentResponse = response;
+
+        alert("paymentId: " + paymentId);
+    }
+</script>
+</body>
+</html>
