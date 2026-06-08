@@ -45,7 +45,7 @@ public class PortOneClient implements PaymentGateway {
     public void cancelPayment(String paymentId, String reason, Integer amount, Integer currentCancellableAmount) {
         log.info("PortOne 결제 취소 요청: paymentId={}, amount={}, reason={}", paymentId, amount, reason);
 
-        PortOneCancelRequestDto requestDto = new PortOneCancelRequestDto(
+        PortOneCancelRequestDto requestDto = PortOneCancelRequestDto.of(
             reason,
             amount,
             currentCancellableAmount,
