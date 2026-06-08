@@ -39,10 +39,10 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class OrderFacade {
 
-    private MemberService memberService;
-    private CartService cartService;
-    private OrderService orderService;
-    private PaymentService paymentService;
+    private final MemberService memberService;
+    private final CartService cartService;
+    private final OrderService orderService;
+    private final PaymentService paymentService;
 
     /**
      * 장바구니에 담긴 상품들을 결제 직전의 '주문서' 형태로 미리보기 위한 기능입니다.
@@ -89,7 +89,6 @@ public class OrderFacade {
 
         List<OrderItem> orderItems = new ArrayList<>();
         for (CartItem cartItem : cartItems) {
-            cartItem.getProduct().decreaseStock(cartItem.getQuantity());
             orderItems.add(new OrderItem(
                 cartItem.getProduct(),
                 cartItem.getProduct().getName(),

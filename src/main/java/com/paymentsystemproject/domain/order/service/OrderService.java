@@ -15,7 +15,6 @@ import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.entity.Order;
 import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.order.repository.OrderRepository;
-import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -32,7 +31,6 @@ import lombok.RequiredArgsConstructor;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
 
     /**
      * 주문을 생성하고 저장합니다.
