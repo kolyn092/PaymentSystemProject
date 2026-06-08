@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.paymentsystemproject.global.logging.ApiLoggingFilter;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationEntryPoint;
 import com.paymentsystemproject.global.security.jwt.JwtAuthenticationFilter;
 import com.paymentsystemproject.global.security.jwt.JwtTokenProvider;
@@ -33,14 +34,17 @@ public class SecurityConfig {
 
 	private final JwtTokenProvider jwtTokenProvider;
 	private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+	private final ApiLoggingFilter apiLoggingFilter;
 
 	@Value("${encoder.strength}")
 	private int strength;
 
 	public SecurityConfig(JwtTokenProvider jwtTokenProvider,
-		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+		JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+		ApiLoggingFilter apiLoggingFilter) {
 		this.jwtTokenProvider = jwtTokenProvider;
 		this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+		this.apiLoggingFilter = apiLoggingFilter;
 	}
 
 	@Bean
@@ -64,7 +68,8 @@ public class SecurityConfig {
 						.anyRequest()
 						.authenticated()
 			)
-			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(apiLoggingFilter, JwtAuthenticationFilter.class);
 
 		return http.build();
 	}
