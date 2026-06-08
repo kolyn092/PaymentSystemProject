@@ -5,13 +5,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.paymentsystemproject.domain.cartitem.service.CartService;
 import com.paymentsystemproject.domain.order.entity.Order;
-import com.paymentsystemproject.domain.order.entity.OrderItem;
 import com.paymentsystemproject.domain.payment.dto.PaymentConfirmResponseDto;
 import com.paymentsystemproject.domain.payment.entity.Payment;
 import com.paymentsystemproject.domain.payment.entity.PaymentStatus;
 import com.paymentsystemproject.domain.payment.repository.PaymentRepository;
 import com.paymentsystemproject.domain.point.service.PointService;
-import com.paymentsystemproject.domain.product.entity.Product;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -53,9 +51,6 @@ public class PaymentCommandService {
 
         // 주문 상태를 취소로 변경
         order.cancel();
-
-        // 재고 원상 복구
-        restoreStock(order);
     }
 
     @Transactional
@@ -75,7 +70,6 @@ public class PaymentCommandService {
 
         payment.markAsCanceled();
         order.cancel();
-        restoreStock(order);
     }
 
     /**  성공 + 금액 일치
@@ -108,7 +102,6 @@ public class PaymentCommandService {
         if (payment.getStatus() != PaymentStatus.PENDING) {
             throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
         }
-        payment.markAsCompleted();
 
         // 3) 주문 상태 -> COMPLETED로 변경
         order.complete();
@@ -120,10 +113,14 @@ public class PaymentCommandService {
         pointService.recordUsePoint(order.getMember(), payment, payment.getUsePoint());
 
         // 5) 포인트 적립
-        order.getMember().increasePoint(earnedPoint(payment.getPgAmount()));
+        int earnedPoint = earnedPoint(payment.getPgAmount());
+        order.getMember().increasePoint(earnedPoint);
 
         // 6) 포인트 적립 기록 생성
-        pointService.recordEarnPoint(order.getMember(), payment, payment.getEarnedPoint());
+        pointService.recordEarnPoint(order.getMember(), payment, earnedPoint);
+
+        // 결제 상태 -> COMPLETED로 변경
+        payment.markAsCompleted(earnedPoint);
 
         // 8) 장바구니 초기화
         cartService.removeCart(order.getMember().getId());
@@ -144,7 +141,7 @@ public class PaymentCommandService {
         payment.getOrder().complete();
 
         // payment 상태 completed
-        payment.markAsCompleted();
+        payment.markAsCompleted(0);
 
         // 포인트 차감
         payment.getOrder().getMember().decreasePoint(payment.getUsePoint());
@@ -156,14 +153,6 @@ public class PaymentCommandService {
         cartService.removeCart(payment.getOrder().getMember().getId());
 
         return PaymentConfirmResponseDto.of(payment, "포인트 전액 결제가 완료되었습니다.");
-    }
-
-    //재고 원상복구 메서드
-    private void restoreStock(Order order) {
-        for (OrderItem orderItem : order.getOrderItems()) {
-            Product product = orderItem.getProduct();
-            product.restoreStock(orderItem.getQuantity());
-        }
     }
 
     // 포인트 계산 메서드

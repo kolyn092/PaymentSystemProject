@@ -93,7 +93,8 @@ public class Payment extends BaseTimeEntity {
         );
     }
 
-    public void markAsCompleted() {
+    public void markAsCompleted(int earnedPoint) {
+        this.earnedPoint = earnedPoint;
         changeStatus(PaymentStatus.COMPLETED);
         this.paidAt = LocalDateTime.now();
     }

@@ -82,11 +82,11 @@ public class PaymentFacade {
     public void cancelPayment(Long memberId, Long orderId) {
         Payment payment = paymentService.findByOrderIdAndMemberId(orderId, memberId);
 
+        paymentCommandService.cancelPayment(payment.getOrder().getId());
+        
         if (!payment.isPointOnlyPayment()) {
             paymentGateway.cancelPayment(payment.getPortonePaymentId(), "사용자 결제 취소", null);
         }
-
-        paymentCommandService.cancelPayment(payment.getOrder().getId());
     }
 
     // 기본 유효성 검증
