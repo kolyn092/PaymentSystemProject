@@ -37,7 +37,6 @@ public class CartService {
         if (existing.isPresent()) {
             CartItem addItem = existing.get();
             addItem.addQuantity(requestDto.quantity());
-            // 💡 기존 상품이면 수량만 올리고 DTO로 변환해서 반환
             return AddCartResponseDto.from(addItem);
         } else {
             Member member = memberRepository.findById(memberId).orElseThrow(

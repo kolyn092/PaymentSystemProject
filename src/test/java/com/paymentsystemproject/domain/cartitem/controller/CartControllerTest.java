@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.paymentsystemproject.domain.cartitem.dto.AddCartRequestDto;
+import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartItemResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
@@ -55,7 +57,11 @@ class CartControllerTest {
     @DisplayName("장바구니 상품 추가 API가 정상적으로 응답한다.")
     void addItem_success() throws Exception {
         AddCartRequestDto request = new AddCartRequestDto(100L, 2);
-        given(cartService.addItem(eq(1L), any(AddCartRequestDto.class))).willReturn(10L);
+
+        AddCartResponseDto mockResponse = new AddCartResponseDto(10L, 100L, 2, LocalDateTime.now(),
+            LocalDateTime.now());
+
+        given(cartService.addItem(eq(1L), any(AddCartRequestDto.class))).willReturn(mockResponse);
 
         mockMvc.perform(post("/api/cartitems")
                 .with(user(mockUser))
@@ -63,7 +69,7 @@ class CartControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
-            .andExpect(status().isCreated()) // 201 Created 검증
+            .andExpect(status().isCreated())
             .andExpect(jsonPath("$.data.cartItemId").value(10L));
     }
 
@@ -84,7 +90,8 @@ class CartControllerTest {
     @Test
     @DisplayName("본인의 장바구니 목록 조회 API가 정상적으로 응답한다.")
     void getItems_success() throws Exception {
-        GetCartItemResponseDto item = new GetCartItemResponseDto(10L, 100L, "마우스", 10000, 2, 50);
+        GetCartItemResponseDto item = new GetCartItemResponseDto(10L, 100L, "마우스", 10000, 2, 50, LocalDateTime.now(),
+            LocalDateTime.now());
         GetCartResponseDto mockResponse = new GetCartResponseDto(List.of(item), 20000);
 
         given(cartService.getCartItems(1L)).willReturn(mockResponse);
@@ -100,7 +107,8 @@ class CartControllerTest {
     @Test
     @DisplayName("선택한 장바구니 상품 목록 조회 API가 정상적으로 응답한다.")
     void getSelectedItems_success() throws Exception {
-        GetCartItemResponseDto item = new GetCartItemResponseDto(10L, 100L, "마우스", 10000, 2, 50);
+        GetCartItemResponseDto item = new GetCartItemResponseDto(10L, 100L, "마우스", 10000, 2, 50, LocalDateTime.now(),
+            LocalDateTime.now());
         GetCartResponseDto mockResponse = new GetCartResponseDto(List.of(item), 20000);
 
         given(cartService.getSelectedItems(eq(1L), anyList())).willReturn(mockResponse);
@@ -120,7 +128,7 @@ class CartControllerTest {
 
         mockMvc.perform(patch("/api/cartitems")
                 .with(user(mockUser))
-                .with(csrf()) // PATCH 요청도 CSRF 방어가 필요함
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andDo(print())
@@ -131,7 +139,6 @@ class CartControllerTest {
     @Test
     @DisplayName("장바구니 특정 상품 삭제 API가 정상적으로 응답한다.")
     void removeItem_success() throws Exception {
-        // when & then
         mockMvc.perform(delete("/api/cartitems/{cartItemId}", 10L)
                 .with(user(mockUser))
                 .with(csrf()))
