@@ -47,6 +47,10 @@ public enum ErrorCode {
     ),
     PG_REFUND_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT_012", "PG 환불 요청에 실패했습니다."),
 
+    // Webhook
+    WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_001", "주문 금액보다 많이 사용할 수 없습니다."),
+    WEBHOOK_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "WEBHOOK_002", "웹훅 서명 인증에 실패하였습니다."),
+
     // Order
     FORBIDDEN_ACCESS(HttpStatus.FORBIDDEN, "ORDER_001", "접근 권한이 없습니다."),
     CART_EMPTY(HttpStatus.BAD_REQUEST, "ORDER_002", "장바구니가 비어 있습니다."),
