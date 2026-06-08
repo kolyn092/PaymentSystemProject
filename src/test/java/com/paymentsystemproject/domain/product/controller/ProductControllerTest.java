@@ -34,6 +34,12 @@ class ProductControllerTest {
     @MockitoBean
     private ProductService productService;
 
+    /**
+     * @WebMvcTest는 웹 계층 관련 빈만 로드하므로 JPA 관련 빈을 로드하지 않음.
+     * 하지만 메인 Application 클래스의 @EnableJpaAuditing 어노테이션으로 인해 JPA 메타모델을 찾으려 시도하게 되고,
+     * "JPA metamodel must not be empty" 에러가 발생.
+     * 이를 우회(방지)하기 위해 가짜 JpaMetamodelMappingContext를 주입.
+     */
     @MockitoBean
     private JpaMetamodelMappingContext jpaMappingContext;
 
