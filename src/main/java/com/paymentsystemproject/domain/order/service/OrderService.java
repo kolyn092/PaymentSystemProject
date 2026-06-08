@@ -97,9 +97,5 @@ public class OrderService {
     public void cancelByFullRefund(Order order) {
         order.cancel();
     }
-
-    @Transactional
-    public void cancelByFullRefund(Order order) {
-        order.cancel();
-    }
+    
 }
