@@ -2,6 +2,7 @@ package com.paymentsystemproject.domain.cartitem.entity;
 
 import com.paymentsystemproject.domain.member.entity.Member;
 import com.paymentsystemproject.domain.product.entity.Product;
+import com.paymentsystemproject.global.entity.BaseTimeEntity;
 import com.paymentsystemproject.global.error.BusinessException;
 import com.paymentsystemproject.global.error.ErrorCode;
 
@@ -29,7 +30,7 @@ import lombok.NoArgsConstructor;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class CartItem {
+public class CartItem extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
