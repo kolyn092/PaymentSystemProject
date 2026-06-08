@@ -36,9 +36,8 @@ public class CartController {
     @PostMapping
     public ResponseEntity<ApiResponse<AddCartResponseDto>> addItem(
         @AuthenticationPrincipal CustomUserDetails userDetails, @Valid @RequestBody AddCartRequestDto request) {
-        Long savedItem = cartService.addItem(userDetails.getMemberId(), request);
+        AddCartResponseDto responseDto = cartService.addItem(userDetails.getMemberId(), request);
 
-        AddCartResponseDto responseDto = new AddCartResponseDto(savedItem);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(responseDto));
     }
 

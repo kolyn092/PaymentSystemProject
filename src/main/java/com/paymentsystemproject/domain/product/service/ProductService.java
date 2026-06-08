@@ -68,7 +68,9 @@ public class ProductService {
             product.getPrice(),
             product.getStock(),
             product.getStatus(),
-            product.getCategory()
+            product.getCategory(),
+            product.getCreatedAt(),
+            product.getUpdatedAt()
         );
     }
 

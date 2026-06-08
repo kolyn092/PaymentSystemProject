@@ -1,5 +1,7 @@
 package com.paymentsystemproject.domain.cartitem.dto;
 
+import java.time.LocalDateTime;
+
 import com.paymentsystemproject.domain.cartitem.entity.CartItem;
 
 public record GetCartItemResponseDto(
@@ -8,7 +10,9 @@ public record GetCartItemResponseDto(
     String productName,
     int price,
     int quantity,
-    int stock
+    int stock,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt
 ) {
     public static GetCartItemResponseDto from(CartItem item) {
         return new GetCartItemResponseDto(
@@ -17,7 +21,9 @@ public record GetCartItemResponseDto(
             item.getProduct().getName(),
             item.getProduct().getPrice(),
             item.getQuantity(),
-            item.getProduct().getStock()
+            item.getProduct().getStock(),
+            item.getCreatedAt(),
+            item.getUpdatedAt()
         );
     }
 }

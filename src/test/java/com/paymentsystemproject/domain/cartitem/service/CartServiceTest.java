@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.paymentsystemproject.domain.cartitem.dto.AddCartRequestDto;
+import com.paymentsystemproject.domain.cartitem.dto.AddCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.GetCartResponseDto;
 import com.paymentsystemproject.domain.cartitem.dto.UpdateCartRequestDto;
 import com.paymentsystemproject.domain.cartitem.entity.CartItem;
@@ -43,29 +45,36 @@ class CartServiceTest {
     @InjectMocks
     private CartService cartService;
 
+    private void setBaseTime(Object entity) {
+        ReflectionTestUtils.setField(entity, "createdAt", LocalDateTime.now());
+        ReflectionTestUtils.setField(entity, "updatedAt", LocalDateTime.now());
+    }
+
     @Test
     @DisplayName("장바구니에 새로운 상품을 추가한다.")
     void addItem_NewItem_Success() {
-        // given
         Long memberId = 1L;
         AddCartRequestDto requestDto = new AddCartRequestDto(100L, 2);
 
-        Member member = mock(Member.class); // Member 엔티티는 가짜(Mock) 객체로 생성
+        Member member = mock(Member.class);
         Product product = Product.from("테스트 상품", 10000, 50, "설명", ProductStatus.ON_SALE, ProductCategory.ELECTRONIC);
         ReflectionTestUtils.setField(product, "id", 100L);
+        setBaseTime(product);
 
         CartItem savedCartItem = CartItem.from(member, product, 2);
         ReflectionTestUtils.setField(savedCartItem, "id", 10L);
+        setBaseTime(savedCartItem);
 
         given(cartItemRepository.findByMember_idAndProduct_Id(memberId, 100L)).willReturn(Optional.empty());
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
         given(productRepository.findById(100L)).willReturn(Optional.of(product));
         given(cartItemRepository.save(any(CartItem.class))).willReturn(savedCartItem);
 
-        Long cartItemId = cartService.addItem(memberId, requestDto);
+        AddCartResponseDto response = cartService.addItem(memberId, requestDto);
 
-        assertThat(cartItemId).isEqualTo(10L);
-        verify(cartItemRepository, times(1)).save(any(CartItem.class)); // save가 한 번 호출되었는지 검증
+        assertThat(response.cartItemId()).isEqualTo(10L);
+        assertThat(response.createdAt()).isNotNull();
+        verify(cartItemRepository, times(1)).save(any(CartItem.class));
     }
 
     @Test
@@ -77,18 +86,20 @@ class CartServiceTest {
         Member member = mock(Member.class);
         Product product = Product.from("테스트 상품", 10000, 50, "설명", ProductStatus.ON_SALE, ProductCategory.ELECTRONIC);
         ReflectionTestUtils.setField(product, "id", 100L);
+        setBaseTime(product);
 
-        CartItem existingCartItem = CartItem.from(member, product, 2); // 기존에 2개가 담겨있음
+        CartItem existingCartItem = CartItem.from(member, product, 2);
         ReflectionTestUtils.setField(existingCartItem, "id", 10L);
+        setBaseTime(existingCartItem);
 
         given(cartItemRepository.findByMember_idAndProduct_Id(memberId, 100L)).willReturn(
             Optional.of(existingCartItem));
 
-        Long cartItemId = cartService.addItem(memberId, requestDto);
+        AddCartResponseDto response = cartService.addItem(memberId, requestDto);
 
-        assertThat(cartItemId).isEqualTo(10L);
-        assertThat(existingCartItem.getQuantity()).isEqualTo(5); // 기존 2개 + 추가 3개 = 5개
-        verify(cartItemRepository, never()).save(any(CartItem.class)); // 이미 영속화된 객체라 save가 호출되지 않아야 함 (JPA 더티 체킹)
+        assertThat(response.cartItemId()).isEqualTo(10L);
+        assertThat(existingCartItem.getQuantity()).isEqualTo(5);
+        verify(cartItemRepository, never()).save(any(CartItem.class));
     }
 
     @Test
@@ -99,20 +110,27 @@ class CartServiceTest {
 
         Product p1 = Product.from("마우스", 10000, 50, "설명", ProductStatus.ON_SALE, ProductCategory.ELECTRONIC);
         ReflectionTestUtils.setField(p1, "id", 101L);
+        setBaseTime(p1);
+
         Product p2 = Product.from("키보드", 50000, 50, "설명", ProductStatus.ON_SALE, ProductCategory.ELECTRONIC);
         ReflectionTestUtils.setField(p2, "id", 102L);
+        setBaseTime(p2);
 
-        CartItem item1 = CartItem.from(member, p1, 2); // 20,000원
+        CartItem item1 = CartItem.from(member, p1, 2);
         ReflectionTestUtils.setField(item1, "id", 1L);
-        CartItem item2 = CartItem.from(member, p2, 1); // 50,000원
+        setBaseTime(item1);
+
+        CartItem item2 = CartItem.from(member, p2, 1);
         ReflectionTestUtils.setField(item2, "id", 2L);
+        setBaseTime(item2);
 
         given(cartItemRepository.findByMemberId(memberId)).willReturn(List.of(item1, item2));
 
         GetCartResponseDto response = cartService.getCartItems(memberId);
 
         assertThat(response.cartItems()).hasSize(2);
-        assertThat(response.totalPrice()).isEqualTo(70000); // 20,000 + 50,000
+        assertThat(response.totalPrice()).isEqualTo(70000);
+        assertThat(response.cartItems().get(0).createdAt()).isNotNull();
     }
 
     @Test
@@ -123,8 +141,10 @@ class CartServiceTest {
 
         Member member = mock(Member.class);
         Product product = Product.from("테스트 상품", 10000, 50, "설명", ProductStatus.ON_SALE, ProductCategory.ELECTRONIC);
+        setBaseTime(product);
 
         CartItem item = CartItem.from(member, product, 1);
+        setBaseTime(item);
 
         given(cartItemRepository.findByMember_idAndProduct_Id(memberId, 100L)).willReturn(Optional.of(item));
 

@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +48,8 @@ class ProductControllerTest {
     @DisplayName("상품 목록 조회 API가 정상적으로 응답한다.")
     void list_success() throws Exception {
         GetProductListResponseDto item = new GetProductListResponseDto(
-            1L, "기계식 키보드", 150000, 10, ProductStatus.ON_SALE, ProductCategory.ELECTRONIC
+            1L, "기계식 키보드", 150000, 10, ProductStatus.ON_SALE, ProductCategory.ELECTRONIC,
+            LocalDateTime.now(), LocalDateTime.now()
         );
         GetProductPageableResponseDto mockResponse = new GetProductPageableResponseDto(
             List.of(item), 0, 10, 1, 1
