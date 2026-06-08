@@ -20,7 +20,7 @@ import com.paymentsystemproject.domain.order.dto.CreateOrderResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderDetailResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderListResponseDto;
 import com.paymentsystemproject.domain.order.dto.GetOrderPreviewResponseDto;
-import com.paymentsystemproject.domain.order.service.OrderService;
+import com.paymentsystemproject.domain.order.facade.OrderFacade;
 import com.paymentsystemproject.global.response.ApiResponse;
 import com.paymentsystemproject.global.security.CustomUserDetails;
 
@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderFacade orderFacade;
 
     /**
      * 주문서 미리보기 조회
@@ -54,7 +54,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @RequestParam(required = false) List<Long> cartItemIds) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderPreview(userDetails.getMemberId(), cartItemIds)));
+            .body(ApiResponse.ok(orderFacade.getOrderPreview(userDetails.getMemberId(), cartItemIds)));
     }
 
     /**
@@ -71,7 +71,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @Valid @RequestBody CreateOrderRequestDto requestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.ok(orderService.createOrder(userDetails.getMemberId(), requestDto)));
+            .body(ApiResponse.ok(orderFacade.createOrder(userDetails.getMemberId(), requestDto)));
     }
 
     /**
@@ -90,7 +90,7 @@ public class OrderController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderList(userDetails.getMemberId(), page, size)));
+            .body(ApiResponse.ok(orderFacade.getOrderList(userDetails.getMemberId(), page, size)));
     }
 
     /**
@@ -107,7 +107,7 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.getOrderDetail(userDetails.getMemberId(), orderId)));
+            .body(ApiResponse.ok(orderFacade.getOrderDetail(userDetails.getMemberId(), orderId)));
     }
 
     /**
@@ -124,6 +124,6 @@ public class OrderController {
         @AuthenticationPrincipal CustomUserDetails userDetails,
         @PathVariable Long orderId) {
         return ResponseEntity.status(HttpStatus.OK)
-            .body(ApiResponse.ok(orderService.cancelOrder(userDetails.getMemberId(), orderId)));
+            .body(ApiResponse.ok(orderFacade.cancelOrder(userDetails.getMemberId(), orderId)));
     }
 }

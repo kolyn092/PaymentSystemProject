@@ -106,6 +106,30 @@ public class CartService {
         }
     }
 
+    /**
+     * 회원의 전체 장바구니 항목을 엔티티로 조회합니다.
+     * Facade에서 주문 처리 시 엔티티 필요한 경우 사용합니다.
+     *
+     * @param memberId 회원 ID
+     * @return 장바구니 항목 엔티티 목록
+     */
+
+    public List<CartItem> findCartEntities(Long memberId) {
+        return cartItemRepository.findByMemberId(memberId);
+    }
+
+    /**
+     * 회원의 장바구니 항목 중 지정된 ID 목록에 해당하는 항목을 엔티티로 조회합니다.
+     * Facade에서 주문 처리 시 엔티티가 필요한 경우 사용합니다.
+     *
+     * @param memberId 회원 ID
+     * @param cartItemIds 조회할 장바구니 항목 ID 목록
+     * @return 장바구니 항목 엔티티 목록
+     */
+
+    public List<CartItem> findCartEntitiesById(Long memberId, List<Long> cartItemIds) {
+        return cartItemRepository.findByMemberIdAndIdIn(memberId, cartItemIds);
+    }
 }
 
 
