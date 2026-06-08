@@ -196,6 +196,7 @@ jobs:
           PORTONE_API_SECRET=$(get_param "PORTONE_API_SECRET")
           PORTONE_STORE_ID=$(get_param "PORTONE_STORE_ID")
           PORTONE_CHANNEL_KEY=$(get_param "PORTONE_CHANNEL_KEY")
+          PORTONE_WEBHOOK_SECRET=$(get_param "PORTONE_WEBHOOK_SECRET")
 
           ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
           IMAGE_NAME="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
@@ -224,6 +225,7 @@ jobs:
             -e PORTONE_API_SECRET="$PORTONE_API_SECRET" \
             -e PORTONE_STORE_ID="$PORTONE_STORE_ID" \
             -e PORTONE_CHANNEL_KEY="$PORTONE_CHANNEL_KEY" \
+            -e PORTONE_WEBHOOK_SECRET="PORTONE_WEBHOOK_SECRET" \
             "$IMAGE_NAME"
           EOF
 
