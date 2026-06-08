@@ -3,6 +3,8 @@
 Spring Boot 기반의 커머스 결제 시스템입니다.
 회원 인증, 상품 조회, 장바구니, 주문, PortOne 결제 검증, 포인트 적립/사용, 결제 취소 및 부분 환불, PortOne 웹훅 처리를 제공합니다.
 
+자세한 문서는 [Wiki](https://github.com/kolyn092/PaymentSystemProject/wiki) 참고 부탁드립니다.
+
 ## 📌 프로젝트 소개
 
 ### 목표
@@ -16,42 +18,42 @@ Spring Boot 기반의 커머스 결제 시스템입니다.
 ### 핵심 기능
 
 - **회원 인증**
-    - 회원가입 및 로그인
-    - JWT 기반 인증 처리
+  - 회원가입 및 로그인
+  - JWT 기반 인증 처리
 
 - **상품**
-    - 상품 목록 조회
-    - 상품 단건 조회
+  - 상품 목록 조회
+  - 상품 단건 조회
 
 - **장바구니**
-    - 상품 담기
-    - 장바구니 조회
-    - 상품 수량 변경
-    - 상품 개별 삭제
-    - 장바구니 전체 비우기
+  - 상품 담기
+  - 장바구니 조회
+  - 상품 수량 변경
+  - 상품 개별 삭제
+  - 장바구니 전체 비우기
 
 - **주문**
-    - 주문서 미리보기
-    - 주문 생성
-    - 내 주문 내역 조회
-    - 주문 상세 조회
-    - 주문 취소
+  - 주문서 미리보기
+  - 주문 생성
+  - 내 주문 내역 조회
+  - 주문 상세 조회
+  - 주문 취소
 
 - **포인트**
-    - 포인트 잔액 조회
-    - 포인트 거래 내역 조회
+  - 포인트 잔액 조회
+  - 포인트 거래 내역 조회
 
 - **결제**
-    - 주문/결제 동시 생성
-    - 결제 확정
-    - PortOne 웹훅 수신
+  - 주문/결제 동시 생성
+  - 결제 확정
+  - PortOne 웹훅 수신
 
 - **환불**
-    - 주문 상품 환불 요청
+  - 주문 상품 환불 요청
 
 - **배포**
-    - AWS 기반 배포
-    - EC2, RDS, ACM, ALB, GitHub Actions 활용
+  - AWS 기반 배포
+  - EC2, RDS, ACM, ALB, GitHub Actions 활용
 
 ## 🛠️ 기술 스택
 
@@ -192,116 +194,116 @@ src
 
 ```mermaid
 erDiagram
-    MEMBER ||--o{ CART_ITEMS: owns
-    MEMBER ||--o{ ORDERS: places
-    MEMBER ||--o{ POINT_TRANSACTION: has
-    PRODUCT ||--o{ CART_ITEMS: included
-    PRODUCT ||--o{ ORDER_ITEM: ordered
-    ORDERS ||--o{ ORDER_ITEM: contains
-    ORDERS ||--|| PAYMENT: paid_by
-    PAYMENT ||--o{ POINT_TRANSACTION: creates
-    PAYMENT ||--o{ REFUND: refunded_by
-    REFUND ||--o{ REFUND_ITEM: contains
-    ORDER_ITEM ||--o{ REFUND_ITEM: refunded
+  MEMBER ||--o{ CART_ITEMS: owns
+  MEMBER ||--o{ ORDERS: places
+  MEMBER ||--o{ POINT_TRANSACTION: has
+  PRODUCT ||--o{ CART_ITEMS: included
+  PRODUCT ||--o{ ORDER_ITEM: ordered
+  ORDERS ||--o{ ORDER_ITEM: contains
+  ORDERS ||--|| PAYMENT: paid_by
+  PAYMENT ||--o{ POINT_TRANSACTION: creates
+  PAYMENT ||--o{ REFUND: refunded_by
+  REFUND ||--o{ REFUND_ITEM: contains
+  ORDER_ITEM ||--o{ REFUND_ITEM: refunded
 
-    MEMBER {
-        bigint id PK
-        varchar email UK
-        varchar password
-        varchar name
-        varchar phone
-        int point_balance
-        datetime created_at
-        datetime updated_at
-    }
+  MEMBER {
+    bigint id PK
+    varchar email UK
+    varchar password
+    varchar name
+    varchar phone
+    int point_balance
+    datetime created_at
+    datetime updated_at
+  }
 
-    PRODUCT {
-        bigint id PK
-        varchar name
-        int price
-        int stock
-        text description
-        varchar status
-        varchar category
-        datetime created_at
-        datetime updated_at
-    }
+  PRODUCT {
+    bigint id PK
+    varchar name
+    int price
+    int stock
+    text description
+    varchar status
+    varchar category
+    datetime created_at
+    datetime updated_at
+  }
 
-    CART_ITEMS {
-        bigint id PK
-        bigint member_id FK
-        bigint product_id FK
-        int quantity
-        datetime created_at
-        datetime updated_at
-    }
+  CART_ITEMS {
+    bigint id PK
+    bigint member_id FK
+    bigint product_id FK
+    int quantity
+    datetime created_at
+    datetime updated_at
+  }
 
-    ORDERS {
-        bigint id PK
-        bigint member_id FK
-        varchar order_number UK
-        int total_amount
-        varchar status
-        datetime created_at
-        datetime updated_at
-    }
+  ORDERS {
+    bigint id PK
+    bigint member_id FK
+    varchar order_number UK
+    int total_amount
+    varchar status
+    datetime created_at
+    datetime updated_at
+  }
 
-    ORDER_ITEM {
-        bigint id PK
-        bigint order_id FK
-        bigint product_id FK
-        varchar product_name
-        int price
-        int quantity
-        datetime created_at
-        datetime updated_at
-    }
+  ORDER_ITEM {
+    bigint id PK
+    bigint order_id FK
+    bigint product_id FK
+    varchar product_name
+    int price
+    int quantity
+    datetime created_at
+    datetime updated_at
+  }
 
-    PAYMENT {
-        bigint id PK
-        bigint order_id FK
-        varchar portone_payment_id UK
-        int total_amount
-        int use_point
-        int pg_amount
-        int earned_point
-        varchar status
-        datetime paid_at
-        datetime created_at
-        datetime updated_at
-    }
+  PAYMENT {
+    bigint id PK
+    bigint order_id FK
+    varchar portone_payment_id UK
+    int total_amount
+    int use_point
+    int pg_amount
+    int earned_point
+    varchar status
+    datetime paid_at
+    datetime created_at
+    datetime updated_at
+  }
 
-    POINT_TRANSACTION {
-        bigint id PK
-        bigint member_id FK
-        bigint payment_id FK
-        varchar type
-        int amount
-        datetime created_at
-        datetime updated_at
-    }
+  POINT_TRANSACTION {
+    bigint id PK
+    bigint member_id FK
+    bigint payment_id FK
+    varchar type
+    int amount
+    datetime created_at
+    datetime updated_at
+  }
 
-    REFUND {
-        bigint id PK
-        bigint payment_id FK
-        varchar reason
-        int point_refund_amount
-        int pg_refund_amount
-        varchar status
-        datetime created_at
-        datetime updated_at
-    }
+  REFUND {
+    bigint id PK
+    bigint payment_id FK
+    varchar reason
+    int point_refund_amount
+    int pg_refund_amount
+    varchar status
+    datetime created_at
+    datetime updated_at
+  }
 
-    REFUND_ITEM {
-        bigint id PK
-        bigint refund_id FK
-        bigint order_item_id FK
-        int quantity
-        int point_refund_amount
-        int pg_refund_amount
-        datetime created_at
-        datetime updated_at
-    }
+  REFUND_ITEM {
+    bigint id PK
+    bigint refund_id FK
+    bigint order_item_id FK
+    int quantity
+    int point_refund_amount
+    int pg_refund_amount
+    datetime created_at
+    datetime updated_at
+  }
 ```
 
 ### 상태 값
