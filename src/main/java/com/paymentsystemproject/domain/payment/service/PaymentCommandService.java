@@ -50,7 +50,7 @@ public class PaymentCommandService {
         payment.markAsFailed();
 
         // 주문 상태를 취소로 변경
-        order.cancel();
+        order.cancelPendingOrder();
     }
 
     @Transactional
@@ -69,7 +69,7 @@ public class PaymentCommandService {
         }
 
         payment.markAsCanceled();
-        order.cancel();
+        order.cancelPendingOrder();
     }
 
     /**  성공 + 금액 일치
