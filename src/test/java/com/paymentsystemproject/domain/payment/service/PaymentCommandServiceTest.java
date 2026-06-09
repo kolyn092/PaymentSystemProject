@@ -58,7 +58,7 @@ class PaymentCommandServiceTest {
 
         // then
         verify(payment).markAsFailed();
-        verify(order).cancel();
+        verify(order).cancelPendingOrder();
     }
 
     @Test
@@ -81,7 +81,7 @@ class PaymentCommandServiceTest {
 
         // then
         verify(payment, never()).markAsFailed();
-        verify(order, never()).cancel();
+        verify(order, never()).cancelPendingOrder();
     }
 
     @Test
@@ -104,7 +104,7 @@ class PaymentCommandServiceTest {
             .isInstanceOf(BusinessException.class);
 
         verify(payment, never()).markAsFailed();
-        verify(order, never()).cancel();
+        verify(order, never()).cancelPendingOrder();
     }
 
     @Test
@@ -141,7 +141,7 @@ class PaymentCommandServiceTest {
 
         // then
         verify(payment).markAsCanceled();
-        verify(order).cancel();
+        verify(order).cancelPendingOrder();
     }
 
     @Test
@@ -164,7 +164,7 @@ class PaymentCommandServiceTest {
 
         // then
         verify(payment, never()).markAsCanceled();
-        verify(order, never()).cancel();
+        verify(order, never()).cancelPendingOrder();
     }
 
     @Test
@@ -187,7 +187,7 @@ class PaymentCommandServiceTest {
             .isInstanceOf(BusinessException.class);
 
         verify(payment, never()).markAsCanceled();
-        verify(order, never()).cancel();
+        verify(order, never()).cancelPendingOrder();
     }
 
     @Test
