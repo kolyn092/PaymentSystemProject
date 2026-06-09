@@ -88,14 +88,14 @@ public class OrderService {
     public Order cancelOrder(Long memberId, Long orderId) {
         Order order = orderRepository.findByIdAndMemberIdWithOrderItems(memberId, orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        order.cancel();
+        order.cancelPendingOrder();
 
         return order;
     }
 
     @Transactional
     public void cancelByFullRefund(Order order) {
-        order.cancel();
+        order.cancelByFullRefund();
     }
-    
+
 }

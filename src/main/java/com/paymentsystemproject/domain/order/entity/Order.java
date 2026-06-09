@@ -83,11 +83,9 @@ public class Order extends BaseTimeEntity {
     }
 
     /**
-     * 주문을 취소 상태로 변경합니다.
-     * 결제 대기 상태가 아닌 경우 예외를 던지며, 취소 시 선차감했던 재고를 복구합니다.
+     * 결제 대기 상태의 주문을 회원이 직접 취소합니다.
      */
-
-    public void cancel() {
+    public void cancelPendingOrder() {
         if (this.status != OrderStatus.PENDING_PAYMENT) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
@@ -95,6 +93,18 @@ public class Order extends BaseTimeEntity {
         for (OrderItem orderItem : this.orderItems) {
             orderItem.getProduct().restoreStock(orderItem.getQuantity());
         }
+
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    /**
+     * 전액 환불로 인해 주문을 취소 상태로 변경합니다.
+     */
+    public void cancelByFullRefund() {
+        if (this.status != OrderStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
         this.status = OrderStatus.CANCELLED;
     }
 
