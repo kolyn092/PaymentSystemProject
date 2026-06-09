@@ -90,6 +90,10 @@ public class Order extends BaseTimeEntity {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
 
+        for (OrderItem orderItem : this.orderItems) {
+            orderItem.getProduct().restoreStock(orderItem.getQuantity());
+        }
+
         this.status = OrderStatus.CANCELLED;
     }
 
