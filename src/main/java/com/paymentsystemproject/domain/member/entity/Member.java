@@ -43,4 +43,20 @@ public class Member extends BaseTimeEntity {
 
 	@Column(name = "point_balance", nullable = false)
 	private Integer pointBalance;
+
+	public Member(String email, String password, String name, String phone) {
+		this.email = email;
+		this.password = password;
+		this.name = name;
+		this.phone = phone;
+		this.pointBalance = 0;
+	}
+
+    public void increasePoint(Integer amount) {
+        this.pointBalance += amount;
+    }
+
+    public void decreasePoint(Integer amount) {
+        this.pointBalance -= amount;
+    }
 }
